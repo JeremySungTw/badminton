@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>羽球團體賽 — 總分</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Arial Black', 'Arial', sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Score area ── */
+    #main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .side-label { font-size: 3.5vw; font-weight: bold; letter-spacing: 4px; margin-bottom: 4px; }
+    .total-score {
+      font-size: 26vw;
+      font-weight: 900;
+      line-height: 1;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .total-score.bump { transform: scale(1.1); }
+    .side.red .total-score  { color: #f44336; }
+    .side.red .side-label   { color: #ef9a9a; }
+    .side.white .total-score{ color: #fff; }
+    .side.white .side-label { color: #bdbdbd; }
+
+    #center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    #vs-label { font-size: 2vw; color: #555; letter-spacing: 5px; white-space: nowrap; }
+    #status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
+    #status-dot.connected { background: #4caf50; }
+
+    /* ── Court cards ── */
+    #details {
+      display: flex;
+      justify-content: center;
+      gap: 1.5vw;
+      padding: 6px 16px 8px;
+      flex-shrink: 0;
+    }
+    .court-card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 6px 12px;
+      text-align: center;
+      min-width: 9vw;
+      position: relative;
+    }
+    .court-card.is-active { border-color: #4caf50; }
+    .active-pip {
+      position: absolute;
+      top: 5px; right: 6px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4caf50;
+    }
+    .court-card .court-name    { font-size: 1.4vw; color: #666; margin-bottom: 2px; }
+    .court-card .court-players { font-size: 1.1vw; color: #555; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 18vw; }
+    .court-card .court-players .r { color: #c62828; }
+    .court-card .court-players .w { color: #888; }
+    .court-card .court-scores  { font-size: 2.4vw; font-weight: bold; }
+    .court-card .r  { color: #f44336; }
+    .court-card .sep{ color: #444; margin: 0 3px; }
+    .court-card .w  { color: #fff; }
+
+    /* ── History strip ── */
+    #history-strip {
+      display: none;
+      justify-content: center;
+      gap: 8px;
+      padding: 4px 16px 10px;
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    .h-pill {
+      background: #0e0e0e;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 1.2vw;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .h-pill .hp-label { color: #444; margin-right: 5px; }
+    .h-pill .hp-r { color: #f44336; font-weight: bold; }
+    .h-pill .hp-w { color: #ccc;    font-weight: bold; }
+    .h-pill .hp-sep { color: #333; margin: 0 3px; }
+  </style>
+</head>
+<body>
+  <div id="main">
+    <div class="side red">
+      <div class="side-label">RED</div>
+      <div class="total-score" id="red-total">0</div>
+    </div>
+    <div id="center">
+      <div id="vs-label">RED vs WHITE</div>
+      <div id="status-dot"></div>
+    </div>
+    <div class="side white">
+      <div class="side-label">WHITE</div>
+      <div class="total-score" id="white-total">0</div>
+    </div>
+  </div>
+  <div id="details"></div>
+  <div id="history-strip"></div>
+
+  <script>
+    let ws = null;
+
+    function bump(el) {
+      el.classList.remove('bump');
+      void el.offsetWidth;
+      el.classList.add('bump');
+      el.addEventListener('transitionend', () => el.classList.remove('bump'), { once: true });
+    }
+
+    function applyUpdate(data) {
+      // ── Totals ──
+      const nr = data.cumulative.red   + data.totals.red;
+      const nw = data.cumulative.white + data.totals.white;
+      const redEl   = document.getElementById('red-total');
+      const whiteEl = document.getElementById('white-total');
+      if (redEl.textContent   !== String(nr)) { redEl.textContent   = nr; bump(redEl); }
+      if (whiteEl.textContent !== String(nw)) { whiteEl.textContent = nw; bump(whiteEl); }
+
+      // ── Court cards ──
+      const details  = document.getElementById('details');
+      const incoming = Object.keys(data.courts).sort((a, b) => Number(a) - Number(b));
+      const existing = [...details.querySelectorAll('.court-card')].map(el => el.dataset.id);
+      if (JSON.stringify(incoming) !== JSON.stringify(existing)) {
+        details.innerHTML = '';
+        for (const id of incoming) {
+          const card = document.createElement('div');
+          card.className = 'court-card';
+          card.dataset.id = id;
+          card.innerHTML = `
+            <div class="court-name">場地 ${id}</div>
+            <div class="court-players" id="dp${id}"></div>
+            <div class="court-scores">
+              <span class="r" id="dr${id}">0</span>
+              <span class="sep">:</span>
+              <span class="w" id="dw${id}">0</span>
+            </div>`;
+          details.appendChild(card);
+        }
+      }
+      for (const id of incoming) {
+        const c   = data.courts[id];
+        const card = details.querySelector(`[data-id="${id}"]`);
+        if (!card) continue;
+
+        card.classList.toggle('is-active', !!c.match_active);
+        let pip = card.querySelector('.active-pip');
+        if (c.match_active && !pip) {
+          pip = document.createElement('div');
+          pip.className = 'active-pip';
+          card.appendChild(pip);
+        } else if (!c.match_active && pip) {
+          pip.remove();
+        }
+
+        document.getElementById(`dr${id}`).textContent = c.red;
+        document.getElementById(`dw${id}`).textContent = c.white;
+        const pEl = document.getElementById(`dp${id}`);
+        if (pEl) {
+          if (c.red_player || c.white_player) {
+            pEl.innerHTML = `<span class="r">${c.red_player}</span> vs <span class="w">${c.white_player}</span>`;
+          } else {
+            pEl.textContent = '';
+          }
+        }
+      }
+
+      // ── History strip ──
+      const strip = document.getElementById('history-strip');
+      if (data.history && data.history.length > 0) {
+        strip.style.display = 'flex';
+        strip.innerHTML = data.history.map(h => `
+          <div class="h-pill">
+            <span class="hp-label">場${h.court} 第${h.round}局</span>
+            <span class="hp-r">${h.red}</span>
+            <span class="hp-sep">:</span>
+            <span class="hp-w">${h.white}</span>
+          </div>`).join('');
+        // auto-scroll to latest
+        strip.scrollLeft = strip.scrollWidth;
+      } else {
+        strip.style.display = 'none';
+      }
+    }
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen    = () => document.getElementById('status-dot').className = 'connected';
+      ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'update') applyUpdate(d); };
+      ws.onclose   = () => { document.getElementById('status-dot').className = ''; setTimeout(connect, 2000); };
+      ws.onerror   = () => ws.close();
+    }
+    connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>場地計分</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    #header {
+      background: #222;
+      padding: 10px 14px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #header-left { font-size: 5.5vw; font-weight: bold; white-space: nowrap; }
+    #header-right { font-size: 3vw; color: #888; text-align: right; }
+    #header-right .r { color: #ef9a9a; }
+    #header-right .w { color: #bdbdbd; }
+
+    /* ── Status bar ── */
+    #status {
+      text-align: center;
+      font-size: 3vw;
+      padding: 3px;
+      background: #333;
+      flex-shrink: 0;
+    }
+    #status.connected { color: #4caf50; }
+    #status.disconnected { color: #f44336; }
+
+    /* ── Lobby screen ── */
+    #lobby {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 18px;
+    }
+    #lobby-heading { font-size: 5vw; color: #aaa; text-align: center; }
+    #lobby-progress { font-size: 3.5vw; color: #666; }
+
+    .field-group { width: 100%; max-width: 340px; }
+    .field-label {
+      font-size: 3.5vw;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot-red   { width: 10px; height: 10px; border-radius: 50%; background: #f44336; flex-shrink: 0; }
+    .dot-white { width: 10px; height: 10px; border-radius: 50%; background: #ccc;    flex-shrink: 0; }
+    .player-input {
+      width: 100%;
+      background: #252525;
+      border: 1px solid #444;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 5vw;
+      padding: 12px 14px;
+      outline: none;
+    }
+    .player-input:focus { border-color: #888; }
+
+    #btn-start {
+      width: 100%;
+      max-width: 340px;
+      padding: 16px;
+      font-size: 5.5vw;
+      font-weight: bold;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: filter 0.1s;
+    }
+    #btn-start:active { filter: brightness(0.85); }
+
+    /* ── Match screen ── */
+    #match {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #courts-area {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .team {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 10px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: filter 0.08s;
+    }
+    .team:active { filter: brightness(1.25); }
+    .team.red   { background: #b71c1c; }
+    .team.white { background: #616161; }
+    .team-label { font-size: 4vw; font-weight: bold; letter-spacing: 2px; }
+    .score { font-size: 20vw; font-weight: 900; line-height: 1; }
+    .btn-row { display: flex; gap: 10px; }
+    .score-btn {
+      width: 17vw;
+      height: max(72px, 11vw);
+      font-size: 7.5vw;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s, filter 0.1s;
+    }
+    .score-btn:active { transform: scale(0.92); filter: brightness(0.85); }
+    .btn-plus  { background: #fff; color: #1a1a1a; }
+    .btn-minus { background: rgba(0,0,0,0.3); color: #fff; }
+
+    #end-bar {
+      flex-shrink: 0;
+      padding: 8px 14px 12px;
+      background: #111;
+    }
+    #btn-end {
+      width: 100%;
+      padding: 13px;
+      font-size: 4.5vw;
+      font-weight: bold;
+      background: transparent;
+      color: #ef9a9a;
+      border: 1px solid #555;
+      border-radius: 12px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+    }
+    #btn-end:active { background: #2a1a1a; }
+
+    /* ── Confirm overlay ── */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.82);
+      align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .overlay.show { display: flex; }
+    .dialog {
+      background: #1e1e1e;
+      border: 1px solid #555;
+      border-radius: 14px;
+      padding: 28px 22px;
+      max-width: 300px;
+      width: 88%;
+      text-align: center;
+    }
+    .dialog-score {
+      font-size: 11vw;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .dialog-score .r { color: #f44336; }
+    .dialog-score .w { color: #fff; }
+    .dialog-players { font-size: 3.5vw; color: #888; margin-bottom: 20px; }
+    .dialog p { margin-bottom: 20px; font-size: 16px; line-height: 1.5; }
+    .dialog-btns { display: flex; gap: 12px; }
+    .dialog-btn {
+      flex: 1;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .btn-cancel  { background: #333; color: #ccc; }
+    .btn-confirm { background: #c62828; color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div id="header-left">場地 <span id="court-num">-</span></div>
+    <div id="header-right" id="header-matchup"></div>
+  </div>
+  <div id="status" class="disconnected">連線中...</div>
+
+  <!-- Lobby -->
+  <div id="lobby">
+    <div id="lobby-heading">下一場對戰</div>
+    <div id="lobby-progress"></div>
+    <div class="field-group">
+      <div class="field-label"><span class="dot-red"></span>紅隊選手</div>
+      <input class="player-input" id="input-red" type="text" placeholder="例：W1" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <div class="field-label"><span class="dot-white"></span>白隊選手</div>
+      <input class="player-input" id="input-white" type="text" placeholder="例：B1" autocomplete="off">
+    </div>
+    <button id="btn-start" onclick="startMatch()">開始比賽</button>
+  </div>
+
+  <!-- Match -->
+  <div id="match">
+    <div id="courts-area">
+      <div class="team red" onclick="send('red', 1)">
+        <div class="team-label">紅隊</div>
+        <div class="score" id="red-score">0</div>
+        <div class="btn-row">
+          <button class="score-btn btn-minus" onclick="event.stopPropagation(); send('red', -1)">-1</button>
+        </div>
+      </div>
+      <div class="team white" onclick="send('white', 1)">
+        <div class="team-label">白隊</div>
+        <div class="score" id="white-score">0</div>
+        <div class="btn-row">
+          <button class="score-btn btn-minus" onclick="event.stopPropagation(); send('white', -1)">-1</button>
+        </div>
+      </div>
+    </div>
+    <div id="end-bar">
+      <button id="btn-end" onclick="showEndConfirm()">結束本場</button>
+    </div>
+  </div>
+
+  <!-- End confirm dialog -->
+  <div class="overlay" id="end-overlay">
+    <div class="dialog">
+      <div class="dialog-score">
+        <span class="r" id="dlg-red">0</span>
+        <span style="color:#444;font-size:8vw;margin:0 6px">:</span>
+        <span class="w" id="dlg-white">0</span>
+      </div>
+      <div class="dialog-players" id="dlg-players"></div>
+      <p>確定結束本場比賽？</p>
+      <div class="dialog-btns">
+        <button class="dialog-btn btn-cancel"  onclick="closeConfirm()">取消</button>
+        <button class="dialog-btn btn-confirm" onclick="endMatch()">結束</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params  = new URLSearchParams(location.search);
+    const courtId = parseInt(params.get('id')) || 1;
+    document.getElementById('court-num').textContent = courtId;
+    document.title = `場地 ${courtId}`;
+
+    let ws = null;
+    let currentCourt = null;
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => {
+        document.getElementById('status').textContent = '已連線';
+        document.getElementById('status').className = 'connected';
+      };
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'update') applyUpdate(data);
+      };
+      ws.onclose = () => {
+        document.getElementById('status').textContent = '連線中...';
+        document.getElementById('status').className = 'disconnected';
+        setTimeout(connect, 2000);
+      };
+      ws.onerror = () => ws.close();
+    }
+
+    function applyUpdate(data) {
+      const court = data.courts[String(courtId)];
+      if (!court) return;
+      currentCourt = court;
+      if (court.match_active) {
+        showMatch(court);
+      } else {
+        showLobby(court);
+      }
+    }
+
+    function showLobby(court) {
+      document.getElementById('lobby').style.display = 'flex';
+      document.getElementById('match').style.display = 'none';
+
+      // pre-fill inputs only if not focused (don't interrupt user typing)
+      const rIn = document.getElementById('input-red');
+      const wIn = document.getElementById('input-white');
+      if (document.activeElement !== rIn) rIn.value = court.red_player || '';
+      if (document.activeElement !== wIn) wIn.value = court.white_player || '';
+
+      const total = court.matches_total || 0;
+      const done  = court.match_index  || 0;
+      const prog  = document.getElementById('lobby-progress');
+      const head  = document.getElementById('lobby-heading');
+
+      if (total > 0 && done >= total) {
+        head.textContent = '加賽 / 臨時比賽';
+        prog.textContent = `賽程 ${total} 場已全部完成`;
+      } else if (total > 0) {
+        head.textContent = '下一場對戰';
+        prog.textContent = `第 ${done + 1} 場 / 共 ${total} 場`;
+      } else {
+        head.textContent = '比賽資訊';
+        prog.textContent = '';
+      }
+
+      document.getElementById('header-right').textContent = '';
+    }
+
+    function showMatch(court) {
+      document.getElementById('lobby').style.display = 'none';
+      document.getElementById('match').style.display = 'flex';
+
+      document.getElementById('red-score').textContent   = court.red;
+      document.getElementById('white-score').textContent = court.white;
+
+      const hr = document.getElementById('header-right');
+      if (court.red_player || court.white_player) {
+        hr.innerHTML = `<span class="r">${court.red_player || '紅隊'}</span> vs <span class="w">${court.white_player || '白隊'}</span>`;
+      } else {
+        hr.textContent = '';
+      }
+
+      // update progress in header
+      const total = court.matches_total || 0;
+      const done  = court.match_index  || 0;
+      if (total > 0) {
+        document.getElementById('header-left').innerHTML =
+          `場地 ${courtId} <span style="font-size:2.8vw;color:#888;font-weight:normal">第${done + 1}/${total}場</span>`;
+      }
+    }
+
+    function send(team, delta) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ court: courtId, team, delta }));
+      }
+    }
+
+    async function startMatch() {
+      const red   = document.getElementById('input-red').value.trim();
+      const white = document.getElementById('input-white').value.trim();
+      await fetch(`/court/${courtId}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ red_player: red, white_player: white }),
+      });
+    }
+
+    function showEndConfirm() {
+      if (!currentCourt) return;
+      document.getElementById('dlg-red').textContent   = currentCourt.red;
+      document.getElementById('dlg-white').textContent = currentCourt.white;
+      const rp = currentCourt.red_player   || '紅隊';
+      const wp = currentCourt.white_player || '白隊';
+      document.getElementById('dlg-players').textContent = `${rp} vs ${wp}`;
+      document.getElementById('end-overlay').classList.add('show');
+    }
+
+    async function endMatch() {
+      closeConfirm();
+      await fetch(`/court/${courtId}/end`, { method: 'POST' });
+    }
+
+    function closeConfirm() {
+      document.getElementById('end-overlay').classList.remove('show');
+    }
+
+    connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理頁面</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      min-height: 100dvh;
+      padding: 20px 16px 60px;
+    }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    #conn-status { font-size: 12px; margin-bottom: 20px; }
+    #conn-status.connected { color: #4caf50; }
+    #conn-status.disconnected { color: #f44336; }
+
+    .section { margin-bottom: 28px; }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #666;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .btn {
+      border: none; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px; font-weight: bold;
+      cursor: pointer; touch-action: manipulation;
+      transition: filter 0.1s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:active { filter: brightness(0.8); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; filter: none; }
+    .btn-primary { background: #1565c0; color: #fff; }
+    .btn-success { background: #2e7d32; color: #fff; }
+    .btn-warning { background: #e65100; color: #fff; }
+    .btn-danger  { background: #c62828; color: #fff; }
+    .btn-ghost   { background: #2a2a2a; color: #ccc; }
+    .btn-sm   { padding: 6px 12px; font-size: 13px; }
+    .btn-block { width: 100%; justify-content: center; padding: 12px; }
+
+    /* ── Schedule section ── */
+    .upload-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .file-label {
+      background: #1565c0; color: #fff; border-radius: 8px;
+      padding: 10px 16px; font-size: 14px; font-weight: bold; cursor: pointer;
+    }
+    .file-label input[type="file"] { display: none; }
+    #schedule-info { font-size: 13px; color: #888; margin-bottom: 10px; min-height: 18px; }
+    #csv-preview { display: none; margin-bottom: 12px; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; }
+    .preview-table th, .preview-table td { border: 1px solid #333; padding: 5px 8px; white-space: nowrap; }
+    .preview-table th { background: #1e1e1e; color: #888; }
+    .preview-table td { background: #161616; }
+
+    /* ── Totals ── */
+    .totals-row { display: flex; gap: 12px; }
+    .total-card { flex: 1; border-radius: 10px; padding: 12px; text-align: center; }
+    .total-card.red   { background: #b71c1c; }
+    .total-card.white { background: #424242; }
+    .total-card .tlabel { font-size: 11px; letter-spacing: 2px; }
+    .total-card .tscore { font-size: 40px; font-weight: 900; line-height: 1.1; }
+
+    /* ── Court status rows ── */
+    #court-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .court-row {
+      background: #1e1e1e; border: 1px solid #2a2a2a;
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .court-row.active-row { border-color: #4caf50; }
+    .court-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .court-name { font-weight: bold; font-size: 15px; }
+    .badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: bold; white-space: nowrap;
+    }
+    .badge-active   { background: #1b5e20; color: #a5d6a7; border: 1px solid #4caf50; }
+    .badge-waiting  { background: #1e1e1e; color: #666;    border: 1px solid #333; }
+    .badge-done     { background: #1a1a1a; color: #555;    border: 1px solid #2a2a2a; }
+    .court-progress { font-size: 12px; color: #666; }
+    .court-players  { font-size: 14px; margin-bottom: 8px; min-height: 20px; }
+    .court-players .r { color: #f44336; font-weight: bold; }
+    .court-players .w { color: #ccc;    font-weight: bold; }
+    .court-score    { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .court-score .r { color: #f44336; }
+    .court-score .w { color: #fff; }
+    .court-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── History ── */
+    #history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-entry {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 8px; padding: 10px 14px;
+    }
+    .he-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .he-title  { font-weight: bold; font-size: 14px; }
+    .he-meta   { font-size: 12px; color: #666; }
+    .he-score  { font-size: 14px; font-weight: bold; }
+    .he-score .r { color: #f44336; }
+    .he-score .w { color: #fff; }
+
+    /* ── Confirm overlay ── */
+    .confirm-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box {
+      background: #1e1e1e; border: 1px solid #444; border-radius: 14px;
+      padding: 28px 24px; max-width: 320px; width: 90%; text-align: center;
+    }
+    .confirm-box p { margin-bottom: 20px; font-size: 16px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 12px; }
+    .confirm-actions .btn { flex: 1; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h1>管理頁面</h1>
+  <div id="conn-status" class="disconnected">連線中...</div>
+
+  <!-- 1. 賽程設定 -->
+  <div class="section">
+    <div class="section-title">賽程設定</div>
+    <div class="upload-row">
+      <a class="btn btn-ghost" href="/static/template.csv" download="schedule_template.csv">⬇ 下載範本 CSV</a>
+      <label class="file-label">📂 上傳賽程 CSV<input type="file" accept=".csv,.txt" onchange="handleCSVFile(this)"></label>
+    </div>
+    <div id="schedule-info">尚未載入賽程</div>
+    <div id="csv-preview">
+      <div style="overflow-x:auto;margin-bottom:10px">
+        <table class="preview-table" id="preview-table"></table>
+      </div>
+      <button class="btn btn-success btn-block" onclick="submitSchedule()">確認上傳賽程</button>
+    </div>
+  </div>
+
+  <!-- 2. 目前總分 -->
+  <div class="section">
+    <div class="section-title">目前總分（累積）</div>
+    <div class="totals-row">
+      <div class="total-card red">
+        <div class="tlabel">RED</div>
+        <div class="tscore" id="total-red">0</div>
+      </div>
+      <div class="total-card white">
+        <div class="tlabel">WHITE</div>
+        <div class="tscore" id="total-white">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 場地狀態 -->
+  <div class="section">
+    <div class="section-title">場地狀態</div>
+    <div id="court-list"></div>
+    <button class="btn btn-ghost btn-block" onclick="addCourt()">＋ 新增場地</button>
+  </div>
+
+  <!-- 4. 歷史紀錄 -->
+  <div class="section">
+    <div class="section-title">歷史紀錄</div>
+    <div id="history-list"><div style="color:#555;font-size:13px">尚無紀錄</div></div>
+  </div>
+
+  <!-- Confirm dialog -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <p id="confirm-msg"></p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" onclick="closeConfirm()">取消</button>
+        <button class="btn btn-danger" id="confirm-ok-btn">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let lastData = null;
+    let pendingSchedule = null;
+
+    // ── WebSocket ──────────────────────────────────────────────
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => {
+        document.getElementById('conn-status').textContent = '已連線';
+        document.getElementById('conn-status').className = 'connected';
+      };
+      ws.onmessage = (e) => {
+        const d = JSON.parse(e.data);
+        if (d.type === 'update') applyUpdate(d);
+      };
+      ws.onclose = () => {
+        document.getElementById('conn-status').textContent = '連線中...';
+        document.getElementById('conn-status').className = 'disconnected';
+        setTimeout(connect, 2000);
+      };
+      ws.onerror = () => ws.close();
+    }
+
+    function applyUpdate(data) {
+      lastData = data;
+      document.getElementById('total-red').textContent   = data.cumulative.red   + data.totals.red;
+      document.getElementById('total-white').textContent = data.cumulative.white + data.totals.white;
+      renderCourts(data.courts);
+      renderHistory(data.history);
+      if (data.schedule.length > 0 && pendingSchedule === null) {
+        const n = Object.keys(data.schedule[0]?.courts || {}).length;
+        document.getElementById('schedule-info').textContent =
+          `已載入 ${data.schedule.length} 局，${n} 個場地`;
+      }
+    }
+
+    // ── Courts ─────────────────────────────────────────────────
+    function renderCourts(courts) {
+      const list = document.getElementById('court-list');
+      const ids = Object.keys(courts).sort((a, b) => Number(a) - Number(b));
+
+      list.innerHTML = ids.map(id => {
+        const c = courts[id];
+        const total   = c.matches_total || 0;
+        const done    = c.match_index   || 0;
+        const active  = c.match_active;
+        const allDone = total > 0 && done >= total && !active;
+
+        let badge, playersHtml;
+        if (active) {
+          badge = '<span class="badge badge-active">進行中</span>';
+          playersHtml = `<span class="r">${c.red_player || '紅隊'}</span> vs <span class="w">${c.white_player || '白隊'}</span>`;
+        } else if (allDone) {
+          badge = '<span class="badge badge-done">已完成</span>';
+          playersHtml = total > 0 ? `全 ${total} 場完畢` : '';
+        } else {
+          badge = '<span class="badge badge-waiting">待開始</span>';
+          const rp = c.red_player, wp = c.white_player;
+          playersHtml = (rp || wp)
+            ? `下一場：<span class="r">${rp || '?'}</span> vs <span class="w">${wp || '?'}</span>`
+            : '尚無對戰資訊';
+        }
+
+        const progress = total > 0
+          ? `第 ${active ? done + 1 : done + 1} / ${total} 場`
+          : '';
+
+        const scoreHtml = active
+          ? `<div class="court-score"><span class="r">${c.red}</span> <span style="color:#444">:</span> <span class="w">${c.white}</span></div>`
+          : '';
+
+        const forceEndBtn = active
+          ? `<button class="btn btn-warning btn-sm" onclick="confirmAction('強制結束場地 ${id} 的比賽？', () => forceEnd(${id}))">強制結束</button>`
+          : '';
+
+        return `
+          <div class="court-row ${active ? 'active-row' : ''}">
+            <div class="court-top">
+              ${badge}
+              <span class="court-name">場地 ${id}</span>
+              ${progress ? `<span class="court-progress">${progress}</span>` : ''}
+            </div>
+            <div class="court-players">${playersHtml}</div>
+            ${scoreHtml}
+            <div class="court-btns">
+              ${forceEndBtn}
+              <a class="btn btn-primary btn-sm" href="/court?id=${id}" target="_blank">開啟場地</a>
+              <button class="btn btn-ghost btn-sm" onclick="confirmAction('重置場地 ${id} 分數？', () => resetCourt(${id}))">重置分數</button>
+              <button class="btn btn-ghost btn-sm" style="color:#f44336" onclick="confirmAction('移除場地 ${id}？', () => removeCourt(${id}))">移除</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── History ────────────────────────────────────────────────
+    function renderHistory(history) {
+      const el = document.getElementById('history-list');
+      if (!history || history.length === 0) {
+        el.innerHTML = '<div style="color:#555;font-size:13px">尚無紀錄</div>';
+        return;
+      }
+      el.innerHTML = [...history].reverse().map(h => `
+        <div class="history-entry">
+          <div class="he-header">
+            <div>
+              <span class="he-title">場地 ${h.court}</span>
+              <span class="he-meta" style="margin-left:8px">第 ${h.round} 局${h.time ? ' · ' + h.time : ''}</span>
+            </div>
+            <div class="he-score"><span class="r">${h.red}</span> : <span class="w">${h.white}</span></div>
+          </div>
+          <div style="font-size:13px;color:#888">
+            <span style="color:#f44336">${h.red_player || '紅隊'}</span> vs
+            <span style="color:#ccc">${h.white_player || '白隊'}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    // ── CSV ────────────────────────────────────────────────────
+    function handleCSVFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => parseAndPreviewCSV(e.target.result);
+      reader.readAsText(file, 'UTF-8');
+      input.value = '';
+    }
+
+    function parseAndPreviewCSV(text) {
+      const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) { alert('CSV 格式錯誤：至少需要標題和一筆資料'); return; }
+      const header = lines[0].split(',').map(s => s.trim());
+      const courtCount = Math.floor((header.length - 2) / 2);
+      if (courtCount < 1) { alert('CSV 格式錯誤：找不到場地欄位'); return; }
+
+      const schedule = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(s => s.trim());
+        const rNum = parseInt(cols[0]);
+        if (isNaN(rNum)) continue;
+        const courts = {};
+        for (let c = 0; c < courtCount; c++) {
+          courts[String(c + 1)] = {
+            red_player:   cols[2 + c * 2]     || '',
+            white_player: cols[2 + c * 2 + 1] || '',
+          };
+        }
+        schedule.push({ round: rNum, time: cols[1] || '', courts });
+      }
+      if (schedule.length === 0) { alert('CSV 無有效資料'); return; }
+
+      pendingSchedule = schedule;
+      document.getElementById('schedule-info').textContent =
+        `解析完成：${schedule.length} 局，${courtCount} 個場地 — 請確認後上傳`;
+
+      const table = document.getElementById('preview-table');
+      table.innerHTML =
+        `<tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>` +
+        lines.slice(1).map(l =>
+          `<tr>${l.split(',').map(c => `<td>${c.trim()}</td>`).join('')}</tr>`
+        ).join('');
+      document.getElementById('csv-preview').style.display = 'block';
+    }
+
+    async function submitSchedule() {
+      if (!pendingSchedule) return;
+      const res = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule: pendingSchedule }),
+      });
+      if (res.ok) {
+        pendingSchedule = null;
+        document.getElementById('csv-preview').style.display = 'none';
+      } else {
+        alert('上傳失敗');
+      }
+    }
+
+    // ── Court actions ──────────────────────────────────────────
+    async function addCourt()       { await fetch('/court/add',          { method: 'POST' }); }
+    async function removeCourt(id)  { await fetch(`/court/remove/${id}`, { method: 'POST' }); }
+    async function resetCourt(id)   { await fetch(`/reset/${id}`,        { method: 'POST' }); }
+    async function forceEnd(id)     { await fetch(`/court/${id}/end`,    { method: 'POST' }); }
+
+    // ── Confirm dialog ─────────────────────────────────────────
+    function confirmAction(msg, fn) {
+      document.getElementById('confirm-msg').textContent = msg;
+      document.getElementById('confirm-ok-btn').onclick = () => { closeConfirm(); fn(); };
+      document.getElementById('confirm-overlay').classList.add('show');
+    }
+    function closeConfirm() {
+      document.getElementById('confirm-overlay').classList.remove('show');
+    }
+
+    connect();
+  </script>
+</body>
+</html>

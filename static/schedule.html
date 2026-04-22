@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>羽球團體賽 — 賽程表</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      min-height: 100dvh;
+      padding: 20px 16px 40px;
+    }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    #status { font-size: 12px; margin-bottom: 20px; }
+    #status.connected    { color: #4caf50; }
+    #status.disconnected { color: #f44336; }
+
+    /* ── Cumulative bar ── */
+    #cum-bar { display: none; gap: 12px; margin-bottom: 24px; }
+    .cum-card { flex: 1; border-radius: 10px; padding: 12px; text-align: center; }
+    .cum-card.red   { background: #b71c1c; }
+    .cum-card.white { background: #424242; }
+    .cum-card .cl { font-size: 11px; letter-spacing: 2px; }
+    .cum-card .cs { font-size: 36px; font-weight: 900; line-height: 1.1; }
+
+    /* ── Schedule table ── */
+    #no-schedule { text-align: center; color: #555; padding: 40px 0; font-size: 15px; }
+
+    .table-wrap { overflow-x: auto; margin-bottom: 24px; }
+    table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+    th, td { border: 1px solid #2a2a2a; padding: 8px 10px; white-space: nowrap; }
+    thead th { background: #1a1a1a; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    tbody tr:hover td { background: #1a1a1a; }
+    td.time-cell { color: #666; font-size: 12px; }
+    td.round-cell { font-weight: bold; text-align: center; }
+
+    /* court cells */
+    .cc { min-width: 120px; vertical-align: top; }
+    .cc-inner { padding: 2px 0; }
+    .cc-players { font-size: 13px; font-weight: bold; }
+    .cc-players .r { color: #f44336; }
+    .cc-players .w { color: #ccc; }
+    .cc-players .vs { color: #444; margin: 0 5px; font-weight: normal; font-size: 11px; }
+    .cc-score { font-size: 12px; margin-top: 3px; }
+    .cc-score .r { color: #f44336; font-weight: bold; }
+    .cc-score .w { color: #fff;    font-weight: bold; }
+    .cc-score .sep { color: #444; margin: 0 2px; }
+    .cc-badge {
+      display: inline-block;
+      font-size: 10px; padding: 1px 6px; border-radius: 10px;
+      margin-top: 3px; font-weight: bold;
+    }
+    .badge-active   { background: #1b5e20; color: #a5d6a7; }
+    .badge-done     { background: #1a1a1a; color: #555; }
+    .badge-upcoming { color: #444; }
+
+    /* active row highlight */
+    tr.has-active td { background: #0d1a0d; }
+  </style>
+</head>
+<body>
+  <h1>羽球團體賽 賽程表</h1>
+  <div id="status" class="disconnected">連線中...</div>
+
+  <div id="cum-bar">
+    <div class="cum-card red">
+      <div class="cl">RED 累積</div>
+      <div class="cs" id="cum-red">0</div>
+    </div>
+    <div class="cum-card white">
+      <div class="cl">WHITE 累積</div>
+      <div class="cs" id="cum-white">0</div>
+    </div>
+  </div>
+
+  <div id="schedule-container">
+    <div id="no-schedule">賽程尚未載入</div>
+  </div>
+
+  <script>
+    let ws = null;
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen    = () => { document.getElementById('status').textContent = '已連線'; document.getElementById('status').className = 'connected'; };
+      ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'update') render(d); };
+      ws.onclose   = () => { document.getElementById('status').textContent = '連線中...'; document.getElementById('status').className = 'disconnected'; setTimeout(connect, 2000); };
+      ws.onerror   = () => ws.close();
+    }
+
+    function render(data) {
+      const hasSchedule = data.schedule && data.schedule.length > 0;
+
+      // cumulative bar
+      const cumBar = document.getElementById('cum-bar');
+      if (hasSchedule) {
+        cumBar.style.display = 'flex';
+        document.getElementById('cum-red').textContent   = data.cumulative.red   + data.totals.red;
+        document.getElementById('cum-white').textContent = data.cumulative.white + data.totals.white;
+      } else {
+        cumBar.style.display = 'none';
+      }
+
+      const container = document.getElementById('schedule-container');
+      if (!hasSchedule) {
+        container.innerHTML = '<div id="no-schedule">賽程尚未載入</div>';
+        return;
+      }
+
+      // build lookup: history keyed by "court-round"
+      const histMap = {};
+      for (const h of data.history) {
+        histMap[`${h.court}-${h.round}`] = h;
+      }
+
+      // determine which court-round is currently active
+      // court.match_index tells us which position in the court's queue is current
+      const activeSet = new Set(); // "court-round" strings
+      for (const [cid, court] of Object.entries(data.courts)) {
+        if (court.match_active) {
+          const q = court.queue || [];
+          const idx = court.match_index || 0;
+          if (q[idx]) activeSet.add(`${cid}-${q[idx].round}`);
+        }
+      }
+
+      // get sorted court IDs from first round
+      const courtIds = Object.keys(data.schedule[0]?.courts || {})
+        .sort((a, b) => Number(a) - Number(b));
+
+      // build table
+      let html = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>局</th>
+                <th>時間</th>
+                ${courtIds.map(id => `<th>場地 ${id}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>`;
+
+      for (const round of data.schedule) {
+        const rowHasActive = courtIds.some(cid => activeSet.has(`${cid}-${round.round}`));
+        html += `<tr${rowHasActive ? ' class="has-active"' : ''}>`;
+        html += `<td class="round-cell">${round.round}</td>`;
+        html += `<td class="time-cell">${round.time || ''}</td>`;
+
+        for (const cid of courtIds) {
+          const entry = round.courts[cid];
+          if (!entry) { html += '<td></td>'; continue; }
+
+          const key     = `${cid}-${round.round}`;
+          const isDone  = !!histMap[key];
+          const isActive= activeSet.has(key);
+          const hist    = histMap[key];
+
+          let badge = '';
+          if (isActive)     badge = '<div><span class="cc-badge badge-active">進行中</span></div>';
+          else if (isDone)  badge = '<div><span class="cc-badge badge-done">已完賽</span></div>';
+
+          let scoreHtml = '';
+          if (isDone) {
+            scoreHtml = `<div class="cc-score"><span class="r">${hist.red}</span><span class="sep">:</span><span class="w">${hist.white}</span></div>`;
+          } else if (isActive) {
+            const c = data.courts[cid];
+            scoreHtml = `<div class="cc-score"><span class="r">${c.red}</span><span class="sep">:</span><span class="w">${c.white}</span></div>`;
+          }
+
+          html += `
+            <td class="cc">
+              <div class="cc-inner">
+                <div class="cc-players">
+                  <span class="r">${entry.red_player || '?'}</span>
+                  <span class="vs">vs</span>
+                  <span class="w">${entry.white_player || '?'}</span>
+                </div>
+                ${scoreHtml}
+                ${badge}
+              </div>
+            </td>`;
+        }
+        html += '</tr>';
+      }
+
+      html += '</tbody></table></div>';
+      container.innerHTML = html;
+    }
+
+    connect();
+  </script>
+</body>
+</html>
