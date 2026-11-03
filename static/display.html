@@ -4,12 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>羽球團體賽 — 總分</title>
+  <link rel="stylesheet" href="/static/pixel.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #000;
-      color: #fff;
-      font-family: 'Arial Black', 'Arial', sans-serif;
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -18,113 +15,151 @@
 
     /* ── Score area ── */
     #main {
-      display: flex;
       flex: 1;
       min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 42vw 1fr;
+      align-items: center;
+      padding: 2vh 2vw 0;
     }
     .side {
-      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      gap: 2vh;
     }
-    .side-label { font-size: 3.5vw; font-weight: bold; letter-spacing: 4px; margin-bottom: 4px; }
+    .side-label {
+      font-size: 2.6vw;
+      padding: 0.3vw 1.2vw;
+      color: var(--line);
+      background: var(--red);
+      box-shadow:
+        0 calc(var(--px) * -1) 0 0 var(--walnut),
+        0 var(--px) 0 0 var(--walnut),
+        calc(var(--px) * -1) 0 0 0 var(--walnut),
+        var(--px) 0 0 0 var(--walnut);
+    }
+    .side.white .side-label { background: var(--line); color: var(--walnut); }
+
     .total-score {
-      font-size: 26vw;
-      font-weight: 900;
+      --o: 0.045em;
+      font-size: min(17vw, 44vh);
       line-height: 1;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-variant-numeric: tabular-nums;
+      color: var(--red);
+      /* 四向硬邊描邊（角落留缺口）+ 落地陰影 */
+      text-shadow:
+        calc(var(--o) * -1) 0 0 var(--walnut),
+        var(--o) 0 0 var(--walnut),
+        0 calc(var(--o) * -1) 0 var(--walnut),
+        0 var(--o) 0 var(--walnut),
+        var(--o) calc(var(--o) * 2.5) 0 rgba(59, 35, 20, 0.3);
+      transition: transform 0.24s steps(2);
     }
-    .total-score.bump { transform: scale(1.1); }
-    .side.red .total-score  { color: #f44336; }
-    .side.red .side-label   { color: #ef9a9a; }
-    .side.white .total-score{ color: #fff; }
-    .side.white .side-label { color: #bdbdbd; }
+    .total-score.long { font-size: min(13.5vw, 44vh); }   /* 三位數以上 */
+    .total-score.bump { transform: translateY(-0.06em); }
+    .side.white .total-score { color: var(--line); }
 
     #center {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 0 10px;
-      gap: 10px;
-      flex-shrink: 0;
+      gap: 1.5vh;
     }
-    #vs-label { font-size: 2vw; color: #555; letter-spacing: 5px; white-space: nowrap; }
-    #status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
-    #status-dot.connected { background: #4caf50; }
+    #rally {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
 
     /* ── Court cards ── */
     #details {
       display: flex;
       justify-content: center;
-      gap: 1.5vw;
-      padding: 6px 16px 8px;
+      flex-wrap: wrap;
+      gap: 2vw;
+      padding: 2vh 3vw 2.5vh;
       flex-shrink: 0;
     }
     .court-card {
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 8px;
-      padding: 6px 12px;
-      text-align: center;
-      min-width: 9vw;
-      position: relative;
+      min-width: 15vw;
+      padding: 0.8vw 1.2vw;
+      display: grid;
+      gap: 0.4vw;
     }
-    .court-card.is-active { border-color: #4caf50; }
-    .active-pip {
-      position: absolute;
-      top: 5px; right: 6px;
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #4caf50;
+    .court-card.is-active {
+      box-shadow:
+        0 calc(var(--px) * -1) 0 0 var(--live),
+        0 var(--px) 0 0 var(--live),
+        calc(var(--px) * -1) 0 0 0 var(--live),
+        var(--px) 0 0 0 var(--live);
     }
-    .court-card .court-name    { font-size: 1.4vw; color: #666; margin-bottom: 2px; }
-    .court-card .court-players { font-size: 1.1vw; color: #555; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 18vw; }
-    .court-card .court-players .r { color: #c62828; }
-    .court-card .court-players .w { color: #888; }
-    .court-card .court-scores  { font-size: 2.4vw; font-weight: bold; }
-    .court-card .r  { color: #f44336; }
-    .court-card .sep{ color: #444; margin: 0 3px; }
-    .court-card .w  { color: #fff; }
+    .court-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1vw;
+      font-size: 1.4vw;
+    }
+    .court-head .tag { font-size: 1vw; }
+    .court-players {
+      font-size: 1.15vw;
+      color: var(--varnish);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 20vw;
+      min-height: 1.4em;
+    }
+    .court-scores { font-size: 3vw; line-height: 1; font-variant-numeric: tabular-nums; }
+    .court-scores .w { color: var(--walnut); }
+    .court-scores .sep { color: var(--maple-deep); margin: 0 0.3em; }
 
     /* ── History strip ── */
     #history-strip {
       display: none;
-      justify-content: center;
-      gap: 8px;
-      padding: 4px 16px 10px;
+      gap: 1vw;
+      padding: 1vh 3vw;
       flex-shrink: 0;
       overflow-x: auto;
+      background: var(--walnut);
+      color: var(--line);
+      scrollbar-width: none;
     }
-    .h-pill {
-      background: #0e0e0e;
-      border: 1px solid #1e1e1e;
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-size: 1.2vw;
-      white-space: nowrap;
-      flex-shrink: 0;
+    .h-pill { font-size: 1.1vw; white-space: nowrap; flex-shrink: 0; }
+    .h-pill .hp-label { color: var(--maple-deep); margin-right: 0.4em; }
+    .h-pill .hp-r { color: #FF8A6B; }
+    .h-pill .hp-sep { color: var(--varnish); margin: 0 0.2em; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .total-score.bump { transform: none; }
     }
-    .h-pill .hp-label { color: #444; margin-right: 5px; }
-    .h-pill .hp-r { color: #f44336; font-weight: bold; }
-    .h-pill .hp-w { color: #ccc;    font-weight: bold; }
-    .h-pill .hp-sep { color: #333; margin: 0 3px; }
+
+    @media (max-width: 700px) {
+      #main { grid-template-columns: 1fr 1fr; row-gap: 2vh; }
+      #center { grid-column: 1 / -1; grid-row: 2; }
+      .side-label { font-size: 16px; }
+      .court-card { min-width: 40vw; }
+      .court-head { font-size: 14px; }
+      .court-head .tag { font-size: 11px; }
+      .court-players { font-size: 12px; max-width: 40vw; }
+      .court-scores { font-size: 24px; }
+      .h-pill { font-size: 12px; }
+    }
   </style>
 </head>
 <body>
   <div id="main">
     <div class="side red">
-      <div class="side-label">RED</div>
+      <div class="side-label">紅隊</div>
       <div class="total-score" id="red-total">0</div>
     </div>
     <div id="center">
-      <div id="vs-label">RED vs WHITE</div>
-      <div id="status-dot"></div>
+      <canvas id="rally" width="160" height="60" aria-label="貓咪與小狗打羽球的像素動畫" role="img"></canvas>
+      <div id="status-dot" class="conn">連線中</div>
     </div>
     <div class="side white">
-      <div class="side-label">WHITE</div>
+      <div class="side-label">白隊</div>
       <div class="total-score" id="white-total">0</div>
     </div>
   </div>
@@ -133,7 +168,6 @@
 
   <script>
     let ws = null;
-
     function bump(el) {
       el.classList.remove('bump');
       void el.offsetWidth;
@@ -149,6 +183,9 @@
       const whiteEl = document.getElementById('white-total');
       if (redEl.textContent   !== String(nr)) { redEl.textContent   = nr; bump(redEl); }
       if (whiteEl.textContent !== String(nw)) { whiteEl.textContent = nw; bump(whiteEl); }
+      const long = Math.max(nr, nw) >= 100;
+      redEl.classList.toggle('long', long);
+      whiteEl.classList.toggle('long', long);
 
       // ── Court cards ──
       const details  = document.getElementById('details');
@@ -158,43 +195,34 @@
         details.innerHTML = '';
         for (const id of incoming) {
           const card = document.createElement('div');
-          card.className = 'court-card';
+          card.className = 'court-card px-frame';
           card.dataset.id = id;
           card.innerHTML = `
-            <div class="court-name">場地 ${id}</div>
+            <div class="court-head">
+              <span>場地 ${id}</span>
+              <span class="tag live" id="dt${id}" hidden>進行中</span>
+            </div>
             <div class="court-players" id="dp${id}"></div>
             <div class="court-scores">
-              <span class="r" id="dr${id}">0</span>
-              <span class="sep">:</span>
-              <span class="w" id="dw${id}">0</span>
+              <span class="r" id="dr${id}">0</span><span class="sep">:</span><span class="w" id="dw${id}">0</span>
             </div>`;
           details.appendChild(card);
         }
       }
       for (const id of incoming) {
-        const c   = data.courts[id];
+        const c    = data.courts[id];
         const card = details.querySelector(`[data-id="${id}"]`);
         if (!card) continue;
 
         card.classList.toggle('is-active', !!c.match_active);
-        let pip = card.querySelector('.active-pip');
-        if (c.match_active && !pip) {
-          pip = document.createElement('div');
-          pip.className = 'active-pip';
-          card.appendChild(pip);
-        } else if (!c.match_active && pip) {
-          pip.remove();
-        }
-
+        document.getElementById(`dt${id}`).hidden = !c.match_active;
         document.getElementById(`dr${id}`).textContent = c.red;
         document.getElementById(`dw${id}`).textContent = c.white;
         const pEl = document.getElementById(`dp${id}`);
-        if (pEl) {
-          if (c.red_player || c.white_player) {
-            pEl.innerHTML = `<span class="r">${c.red_player}</span> vs <span class="w">${c.white_player}</span>`;
-          } else {
-            pEl.textContent = '';
-          }
+        if (c.red_player || c.white_player) {
+          pEl.innerHTML = `<span class="r">${c.red_player}</span> 對 <span class="w">${c.white_player}</span>`;
+        } else {
+          pEl.textContent = '等待選手';
         }
       }
 
@@ -205,9 +233,7 @@
         strip.innerHTML = data.history.map(h => `
           <div class="h-pill">
             <span class="hp-label">場${h.court} 第${h.round}局</span>
-            <span class="hp-r">${h.red}</span>
-            <span class="hp-sep">:</span>
-            <span class="hp-w">${h.white}</span>
+            <span class="hp-r">${h.red}</span><span class="hp-sep">:</span><span class="hp-w">${h.white}</span>
           </div>`).join('');
         // auto-scroll to latest
         strip.scrollLeft = strip.scrollWidth;
@@ -218,13 +244,275 @@
 
     function connect() {
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const dot = document.getElementById('status-dot');
       ws = new WebSocket(`${proto}://${location.host}/ws`);
-      ws.onopen    = () => document.getElementById('status-dot').className = 'connected';
+      ws.onopen    = () => { dot.className = 'conn connected'; dot.textContent = '即時連線中'; };
       ws.onmessage = (e) => { const d = JSON.parse(e.data); if (d.type === 'update') applyUpdate(d); };
-      ws.onclose   = () => { document.getElementById('status-dot').className = ''; setTimeout(connect, 2000); };
+      ws.onclose   = () => { dot.className = 'conn'; dot.textContent = '重新連線中'; setTimeout(connect, 2000); };
       ws.onerror   = () => ws.close();
     }
     connect();
+
+    // ── 像素對打動畫：左邊貓咪（紅隊）vs 右邊小狗（白隊） ─────────────
+    const PAL = {
+      k: '#3B2314', o: '#E08A3C', d: '#A85A22', c: '#FFF7E8',
+      p: '#E8968A', r: '#B8291C', b: '#B5763F',
+    };
+    // 兩隻都畫成面向右，小狗繪製時水平翻轉
+    const CAT = [
+      '...k.......k....',
+      '..kok.....kok...',
+      '..kpok...kopk...',
+      '.kooookkkoooook.',
+      '.krrrrrrrrrrrrk.',
+      '.koodoooooooodk.',
+      '.koooooookooook.',
+      '.koodoooocccccck',
+      '.koooooocccccpk.',
+      '..koooooocccck..',
+      '...kkkookookk...',
+      'k....kocccok....',
+      'ok..kocccccok...',
+      '.ok.kocccccok...',
+      '.okkoocccccok...',
+      '..kooooooooook..',
+      '...koooooooook..',
+      '....kook.kook...',
+      '....kook.kook...',
+      '...kkkk..kkkk...',
+    ];
+    const DOG = [
+      '....kkkkkk......',
+      '...kcccccck.....',
+      '..kbbcccccckk...',
+      '.kbbbccccccccck.',
+      '.kbbbcccckcccck.',
+      '.kbbbccccccccckk',
+      '.kbbkccccccckkk.',
+      '..kk.kcccccck...',
+      '.....kccccck....',
+      '....kcccccccck..',
+      'k..kccccccccck..',
+      'kk.kccbbccccck..',
+      '.kkkccbbbcccck..',
+      '...kcccccccccck.',
+      '...kcccccccccck.',
+      '....kccccccccck.',
+      '....kcck..kcck..',
+      '....kcck..kcck..',
+      '....kcck..kcck..',
+      '...kkkkk.kkkkk..',
+    ];
+    // 跨步：前腳往前、後腳往後，只換掉腿的那幾列
+    const CAT_STEP = [
+      ...CAT.slice(0, 17),
+      '....kook.kook...',
+      '...kook...kook..',
+      '..kkkk.....kkkk.',
+    ];
+    const DOG_STEP = [
+      ...DOG.slice(0, 16),
+      '....kcck..kcck..',
+      '...kcck....kcck.',
+      '..kcck......kcck',
+      '.kkkkk.....kkkkk',
+    ];
+    const SHUTTLE = ['ccc..', 'cccrr', 'ccc..'];   // 羽毛在後、球頭朝右
+
+    const W = 160, H = 60;
+    const FLOOR = 52;            // 腳底所在的 y
+    const NET_X = 80;
+    const FLIGHT = 1.1;          // 單趟飛行秒數
+    const CYCLE = FLIGHT * 2;
+    const HITSTOP = 0.07;        // 擊中瞬間「頓一下」的秒數
+    const SHOULDER = { x: 10, y: 12 };
+
+    const canvas = document.getElementById('rally');
+    const ctx = canvas.getContext('2d');
+
+    function px(x, y, w = 1, h = 1) { ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+
+    function sprite(rows, x, y, flip) {
+      const w = rows[0].length;
+      rows.forEach((row, ry) => {
+        for (let rx = 0; rx < w; rx++) {
+          const ch = row[rx];
+          if (ch === '.') continue;
+          ctx.fillStyle = PAL[ch];
+          px(x + (flip ? w - 1 - rx : rx), y + ry);
+        }
+      });
+    }
+
+    // 揮拍角度（度，0 = 正前方，負值朝上）：引拍 → 擊球 → 隨揮 → 回位
+    function swingAngle(u) {
+      const lerp = (a, b, s) => a + (b - a) * s;
+      if (u >= -0.25 && u < 0)  return lerp(-150, -60, (u + 0.25) / 0.25);
+      if (u >= 0 && u < 0.18)   return lerp(-60, 40, u / 0.18);
+      if (u >= 0.18 && u < 0.9) return lerp(40, -150, (u - 0.18) / 0.72);
+      return -150;
+    }
+
+    // 回傳球拍頭位置，供羽球對齊擊球點
+    function racketHead(baseX, baseY, flip, deg) {
+      const a = deg * Math.PI / 180;
+      const dx = Math.cos(a) * (flip ? -1 : 1), dy = Math.sin(a);
+      const sx = baseX + (flip ? 15 - SHOULDER.x : SHOULDER.x);
+      const sy = baseY + SHOULDER.y;
+      return { sx, sy, dx, dy, hx: sx + dx * 9, hy: sy + dy * 9 };
+    }
+
+    // 步法（u = 距離自己擊球的秒數）：擊球後退回底線、等對方擊球時墊步、再上前迎球。
+    // 擊球前後位移為 0，擊球點維持不變
+    const BACK = 4;
+    function footwork(u) {
+      const ease = (s) => s * s * (3 - 2 * s);
+      let back = 0, moving = false;
+      if (u >= 0 && u < 0.4)          { back = BACK * ease(u / 0.4); moving = true; }
+      else if (u >= 0.4 || u < -0.7)  back = BACK;
+      else if (u < -0.15)             { back = BACK * ease((-0.15 - u) / 0.55); moving = true; }
+      const lunge = Math.abs(u) < 0.12;
+      const stride = lunge || (moving && Math.floor(u / 0.1) % 2 === 0);
+      const hop = lunge || u > 0.95 || u < -1.02 ? -1 : 0;   // 擊球跳起、對方擊球時墊步
+      return { back: Math.round(back), stride, hop };
+    }
+
+    function drawPlayer(rows, step, baseX, flip, u) {
+      const f = footwork(u);
+      baseX += flip ? f.back : -f.back;
+      if (f.stride) rows = step;
+      const baseY = FLOOR - rows.length + 1 + f.hop;
+      ctx.fillStyle = 'rgba(59, 35, 20, 0.22)';
+      px(baseX + 2, FLOOR + 1, 12, 1);
+      sprite(rows, baseX, baseY, flip);
+
+      const r = racketHead(baseX, baseY, flip, swingAngle(u));
+      ctx.fillStyle = PAL.k;
+      for (let i = 0; i <= 5; i++) px(r.sx + r.dx * i, r.sy + r.dy * i);        // 手臂 + 握把
+      for (let t = 0; t < 24; t++) {                                           // 拍框
+        const th = t / 24 * Math.PI * 2;
+        const ox = Math.cos(th) * 2.4, oy = Math.sin(th) * 3.2;
+        px(r.hx + ox * -r.dy + oy * r.dx, r.hy + ox * r.dx + oy * r.dy);
+      }
+      ctx.fillStyle = PAL.c;
+      px(r.hx, r.hy);
+    }
+
+    function drawCourt() {
+      // 側視角下的近、遠邊線，加上底線與發球線的斜段
+      const far = FLOOR - 4, near = FLOOR + 3;
+      const BASE = 72;
+      const lineX = (m, y) => Math.round(NET_X + m * (0.94 + 0.06 * (y - far) / (near - far)));
+      ctx.fillStyle = PAL.c;
+      // 邊線剛好接到兩端底線，不超出球場
+      px(lineX(-BASE, far), far, lineX(BASE, far) - lineX(-BASE, far) + 1, 1);
+      px(lineX(-BASE, near), near, lineX(BASE, near) - lineX(-BASE, near) + 1, 2);
+      for (const m of [-BASE, -64, -22, 22, 64, BASE]) {
+        for (let y = far; y <= near; y++) px(lineX(m, y), y);
+      }
+      // 網柱與網
+      ctx.fillStyle = PAL.k;
+      px(NET_X - 1, FLOOR - 17, 1, 20);
+      for (let y = FLOOR - 15; y < FLOOR - 6; y++) {
+        for (let x = NET_X; x < NET_X + 3; x++) if ((x + y) % 2 === 0) px(x, y);
+      }
+      ctx.fillStyle = PAL.c;
+      px(NET_X - 1, FLOOR - 17, 5, 2);
+    }
+
+    function drawShuttle(t, catHit, dogHit) {
+      const toDog = t < FLIGHT;
+      // 頓一下期間球停在拍面上，之後加速飛行，仍準時到對面
+      const l = toDog ? t : t - FLIGHT;
+      const s = Math.max(0, l - HITSTOP) / (FLIGHT - HITSTOP);
+      const from = toDog ? catHit : dogHit, to = toDog ? dogHit : catHit;
+      const x = from.hx + (to.hx - from.hx) * s;
+      const y = from.hy + (to.hy - from.hy) * s - 104 * s * (1 - s);
+      ctx.fillStyle = 'rgba(59, 35, 20, 0.22)';
+      px(x - 1, FLOOR + 1, 3, 1);
+      SHUTTLE.forEach((row, ry) => {
+        for (let rx = 0; rx < row.length; rx++) {
+          const ch = row[rx];
+          if (ch === '.') continue;
+          ctx.fillStyle = PAL[ch];
+          px(x - 2 + (toDog ? rx : row.length - 1 - rx), y - 1 + ry);
+        }
+      });
+    }
+
+    const CAT_X = 18, DOG_X = 126;
+    const wrap = (u) => ((u % CYCLE) + CYCLE * 1.5) % CYCLE - CYCLE / 2;
+    // 擊中後停在擊球姿勢 HITSTOP 秒，之後的隨揮整段往後延
+    const hitstop = (u) => (u < 0 ? u : Math.max(0, u - HITSTOP));
+
+    // 擊球效果：頓一下時擊球點亮一團白光，恢復動作後＋字閃點往外散開，
+    // 縮成單點、帶點下墜後逐顆消失；往網子飛的兩顆縮成點後拖一格尾巴
+    const SPARK_TIME = 0.35;
+    const deg = (d) => d * Math.PI / 180;
+    const IMPACT_SPARKS = [                     // 角度以面向網子為 0°，負值朝上
+      { a: deg(-40),  d: 10, c: '#FFFFFF', until: 1,    trail: true },
+      { a: deg(-12),  d: 11, c: '#FFFFFF', until: 0.95, trail: true },
+      { a: deg(-75),  d: 7,  c: '#FFF7E8', until: 0.85 },
+      { a: deg(15),   d: 8,  c: '#FF8FB0', until: 0.8 },
+      { a: deg(40),   d: 6,  c: '#FFFFFF', until: 0.7 },
+      { a: deg(-100), d: 8,  c: '#FF8FB0', until: 0.9 },
+      { a: deg(-130), d: 6,  c: '#FFFFFF', until: 0.75 },
+      { a: deg(-160), d: 5,  c: '#FFF7E8', until: 0.6 },
+      { a: deg(165),  d: 4,  c: '#FF8FB0', until: 0.55 },
+      { a: deg(120),  d: 4,  c: '#FFFFFF', until: 0.5 },
+    ];
+    function drawImpact(u, hit, facing) {
+      if (u < 0 || u >= HITSTOP + SPARK_TIME) return;
+      if (u < HITSTOP) {
+        ctx.fillStyle = '#FFFFFF';
+        for (let k = -2; k <= 2; k++) { px(hit.hx + k, hit.hy); px(hit.hx, hit.hy + k); }
+        for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) px(hit.hx + dx, hit.hy + dy);
+        return;
+      }
+      const s = (u - HITSTOP) / SPARK_TIME;
+      const ease = 1 - (1 - s) * (1 - s);
+      for (const p of IMPACT_SPARKS) {
+        if (s > p.until) continue;
+        const dx = Math.cos(p.a) * facing, dy = Math.sin(p.a);
+        const r = 2 + p.d * ease;
+        const x = hit.hx + dx * r, y = hit.hy + dy * r + 3 * s * s;
+        ctx.fillStyle = p.c;
+        px(x, y);
+        if (s < 0.45) { px(x - 1, y); px(x + 1, y); px(x, y - 1); px(x, y + 1); }
+        else if (p.trail) px(x - dx * 1.5, y - dy * 1.5);
+      }
+    }
+
+    function frame(t) {
+      ctx.clearRect(0, 0, W, H);
+      drawCourt();
+      const catBaseY = FLOOR - CAT.length + 1, dogBaseY = FLOOR - DOG.length + 1;
+      const catHit = racketHead(CAT_X, catBaseY, false, -60);
+      const dogHit = racketHead(DOG_X, dogBaseY, true, -60);
+      drawPlayer(CAT, CAT_STEP, CAT_X, false, hitstop(wrap(t)));
+      drawPlayer(DOG, DOG_STEP, DOG_X, true, hitstop(wrap(t - FLIGHT)));
+      drawShuttle(t, catHit, dogHit);
+      drawImpact(wrap(t), catHit, 1);
+      drawImpact(wrap(t - FLIGHT), dogHit, -1);
+    }
+
+    // 以整數倍放大，維持像素方正
+    function fitCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const box = document.getElementById('center').clientWidth;
+      const scale = Math.max(1, Math.floor(box * dpr / W));
+      canvas.style.width  = (W * scale / dpr) + 'px';
+      canvas.style.height = (H * scale / dpr) + 'px';
+    }
+    window.addEventListener('resize', fitCanvas);
+    fitCanvas();
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      frame(FLIGHT / 2);
+    } else {
+      const loop = (now) => { frame((now / 1000) % CYCLE); requestAnimationFrame(loop); };
+      requestAnimationFrame(loop);
+    }
   </script>
 </body>
 </html>
