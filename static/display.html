@@ -168,7 +168,6 @@
 
   <script>
     let ws = null;
-
     function bump(el) {
       el.classList.remove('bump');
       void el.offsetWidth;
@@ -311,6 +310,7 @@
     const NET_X = 80;
     const FLIGHT = 1.1;          // 單趟飛行秒數
     const CYCLE = FLIGHT * 2;
+    const HITSTOP = 0.07;        // 擊中瞬間「頓一下」的秒數
     const SHOULDER = { x: 10, y: 12 };
 
     const canvas = document.getElementById('rally');
@@ -370,14 +370,14 @@
     function drawCourt() {
       // 側視角下的近、遠邊線，加上底線與發球線的斜段
       const far = FLOOR - 4, near = FLOOR + 3;
+      const BASE = 72;
+      const lineX = (m, y) => Math.round(NET_X + m * (0.94 + 0.06 * (y - far) / (near - far)));
       ctx.fillStyle = PAL.c;
-      px(5, far, 150, 1);
-      px(1, near, 158, 2);
-      for (const m of [-72, -64, -22, 22, 64, 72]) {
-        for (let y = far; y <= near; y++) {
-          const s = (y - far) / (near - far);
-          px(NET_X + m * (0.94 + 0.06 * s), y);
-        }
+      // 邊線剛好接到兩端底線，不超出球場
+      px(lineX(-BASE, far), far, lineX(BASE, far) - lineX(-BASE, far) + 1, 1);
+      px(lineX(-BASE, near), near, lineX(BASE, near) - lineX(-BASE, near) + 1, 2);
+      for (const m of [-BASE, -64, -22, 22, 64, BASE]) {
+        for (let y = far; y <= near; y++) px(lineX(m, y), y);
       }
       // 網柱與網
       ctx.fillStyle = PAL.k;
@@ -391,7 +391,9 @@
 
     function drawShuttle(t, catHit, dogHit) {
       const toDog = t < FLIGHT;
-      const s = (toDog ? t : t - FLIGHT) / FLIGHT;
+      // 頓一下期間球停在拍面上，之後加速飛行，仍準時到對面
+      const l = toDog ? t : t - FLIGHT;
+      const s = Math.max(0, l - HITSTOP) / (FLIGHT - HITSTOP);
       const from = toDog ? catHit : dogHit, to = toDog ? dogHit : catHit;
       const x = from.hx + (to.hx - from.hx) * s;
       const y = from.hy + (to.hy - from.hy) * s - 104 * s * (1 - s);
@@ -409,6 +411,46 @@
 
     const CAT_X = 18, DOG_X = 126;
     const wrap = (u) => ((u % CYCLE) + CYCLE * 1.5) % CYCLE - CYCLE / 2;
+    // 擊中後停在擊球姿勢 HITSTOP 秒，之後的隨揮整段往後延
+    const hitstop = (u) => (u < 0 ? u : Math.max(0, u - HITSTOP));
+
+    // 擊球效果：頓一下時擊球點亮一團白光，恢復動作後＋字閃點往外散開，
+    // 縮成單點、帶點下墜後逐顆消失；往網子飛的兩顆縮成點後拖一格尾巴
+    const SPARK_TIME = 0.35;
+    const deg = (d) => d * Math.PI / 180;
+    const IMPACT_SPARKS = [                     // 角度以面向網子為 0°，負值朝上
+      { a: deg(-40),  d: 10, c: '#FFFFFF', until: 1,    trail: true },
+      { a: deg(-12),  d: 11, c: '#FFFFFF', until: 0.95, trail: true },
+      { a: deg(-75),  d: 7,  c: '#FFF7E8', until: 0.85 },
+      { a: deg(15),   d: 8,  c: '#FF8FB0', until: 0.8 },
+      { a: deg(40),   d: 6,  c: '#FFFFFF', until: 0.7 },
+      { a: deg(-100), d: 8,  c: '#FF8FB0', until: 0.9 },
+      { a: deg(-130), d: 6,  c: '#FFFFFF', until: 0.75 },
+      { a: deg(-160), d: 5,  c: '#FFF7E8', until: 0.6 },
+      { a: deg(165),  d: 4,  c: '#FF8FB0', until: 0.55 },
+      { a: deg(120),  d: 4,  c: '#FFFFFF', until: 0.5 },
+    ];
+    function drawImpact(u, hit, facing) {
+      if (u < 0 || u >= HITSTOP + SPARK_TIME) return;
+      if (u < HITSTOP) {
+        ctx.fillStyle = '#FFFFFF';
+        for (let k = -2; k <= 2; k++) { px(hit.hx + k, hit.hy); px(hit.hx, hit.hy + k); }
+        for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) px(hit.hx + dx, hit.hy + dy);
+        return;
+      }
+      const s = (u - HITSTOP) / SPARK_TIME;
+      const ease = 1 - (1 - s) * (1 - s);
+      for (const p of IMPACT_SPARKS) {
+        if (s > p.until) continue;
+        const dx = Math.cos(p.a) * facing, dy = Math.sin(p.a);
+        const r = 2 + p.d * ease;
+        const x = hit.hx + dx * r, y = hit.hy + dy * r + 3 * s * s;
+        ctx.fillStyle = p.c;
+        px(x, y);
+        if (s < 0.45) { px(x - 1, y); px(x + 1, y); px(x, y - 1); px(x, y + 1); }
+        else if (p.trail) px(x - dx * 1.5, y - dy * 1.5);
+      }
+    }
 
     function frame(t) {
       ctx.clearRect(0, 0, W, H);
@@ -416,9 +458,11 @@
       const catBaseY = FLOOR - CAT.length + 1, dogBaseY = FLOOR - DOG.length + 1;
       const catHit = racketHead(CAT_X, catBaseY, false, -60);
       const dogHit = racketHead(DOG_X, dogBaseY, true, -60);
-      drawPlayer(CAT, CAT_X, false, wrap(t));
-      drawPlayer(DOG, DOG_X, true, wrap(t - FLIGHT));
+      drawPlayer(CAT, CAT_X, false, hitstop(wrap(t)));
+      drawPlayer(DOG, DOG_X, true, hitstop(wrap(t - FLIGHT)));
       drawShuttle(t, catHit, dogHit);
+      drawImpact(wrap(t), catHit, 1);
+      drawImpact(wrap(t - FLIGHT), dogHit, -1);
     }
 
     // 以整數倍放大，維持像素方正
