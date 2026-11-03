@@ -4,12 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>場地計分</title>
+  <link rel="stylesheet" href="/static/pixel.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Arial', sans-serif;
-      background: #1a1a1a;
-      color: #fff;
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -18,7 +15,8 @@
 
     /* ── Header ── */
     #header {
-      background: #222;
+      background: var(--walnut);
+      color: var(--line);
       padding: 10px 14px;
       flex-shrink: 0;
       display: flex;
@@ -26,21 +24,21 @@
       justify-content: space-between;
       gap: 8px;
     }
-    #header-left { font-size: 5.5vw; font-weight: bold; white-space: nowrap; }
-    #header-right { font-size: 3vw; color: #888; text-align: right; }
-    #header-right .r { color: #ef9a9a; }
-    #header-right .w { color: #bdbdbd; }
+    #header-left { font-size: min(5.5vw, 24px); white-space: nowrap; }
+    #header-left .hdr-sub { font-size: min(3vw, 13px); color: var(--maple-deep); margin-left: 0.4em; }
+    #header-right { font-size: min(3.4vw, 15px); color: var(--maple-deep); text-align: right; }
+    #header-right .r { color: #FF8A6B; }
+    #header-right .w { color: var(--line); }
 
     /* ── Status bar ── */
     #status {
-      text-align: center;
-      font-size: 3vw;
-      padding: 3px;
-      background: #333;
+      justify-content: center;
+      font-size: min(3vw, 13px);
+      padding: 4px;
+      background: var(--paper);
       flex-shrink: 0;
+      display: flex;
     }
-    #status.connected { color: #4caf50; }
-    #status.disconnected { color: #f44336; }
 
     /* ── Lobby screen ── */
     #lobby {
@@ -48,51 +46,48 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: safe center;
       padding: 20px;
-      gap: 18px;
+      min-height: 0;
+      overflow-y: auto;      /* 手機橫放時高度不夠，讓表單可捲動 */
     }
-    #lobby-heading { font-size: 5vw; color: #aaa; text-align: center; }
-    #lobby-progress { font-size: 3.5vw; color: #666; }
+    #lobby-card {
+      width: 100%;
+      max-width: 360px;
+      padding: 22px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+    #lobby-heading { font-size: min(6vw, 26px); text-align: center; }
+    #lobby-progress { font-size: min(3.5vw, 15px); color: var(--varnish); text-align: center; min-height: 1em; }
 
-    .field-group { width: 100%; max-width: 340px; }
     .field-label {
-      font-size: 3.5vw;
-      margin-bottom: 6px;
+      font-size: min(3.8vw, 16px);
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
-    .dot-red   { width: 10px; height: 10px; border-radius: 50%; background: #f44336; flex-shrink: 0; }
-    .dot-white { width: 10px; height: 10px; border-radius: 50%; background: #ccc;    flex-shrink: 0; }
+    .dot-red, .dot-white { width: 10px; height: 10px; flex-shrink: 0; }
+    .dot-red   { background: var(--red); }
+    .dot-white { background: var(--line); box-shadow: 0 0 0 2px var(--walnut); }
     .player-input {
       width: 100%;
-      background: #252525;
-      border: 1px solid #444;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 5vw;
+      font-family: var(--font);
+      font-size: min(5.5vw, 24px);
+      color: var(--walnut);
+      background: var(--line);
+      border: none;
       padding: 12px 14px;
       outline: none;
+      box-shadow: inset 0 0 0 var(--px) var(--walnut);
     }
-    .player-input:focus { border-color: #888; }
+    .player-input::placeholder { color: var(--maple-deep); }
+    .player-input:focus { box-shadow: inset 0 0 0 var(--px) var(--live); }
 
-    #btn-start {
-      width: 100%;
-      max-width: 340px;
-      padding: 16px;
-      font-size: 5.5vw;
-      font-weight: bold;
-      background: #2e7d32;
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-      transition: filter 0.1s;
-    }
-    #btn-start:active { filter: brightness(0.85); }
+    #btn-start { font-size: min(6vw, 26px); padding: 14px; margin-top: 4px; }
 
     /* ── Match screen ── */
     #match {
@@ -106,103 +101,74 @@
       flex: 1;
       min-height: 0;
     }
+    /* 兩隊之間的球網 */
+    #net {
+      width: 10px;
+      flex-shrink: 0;
+      background:
+        repeating-conic-gradient(var(--walnut) 0 25%, var(--line) 0 50%) 0 0 / 5px 5px;
+      border-left: 2px solid var(--walnut);
+      border-right: 2px solid var(--walnut);
+    }
     .team {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 14px;
       padding: 10px;
       cursor: pointer;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      transition: filter 0.08s;
     }
-    .team:active { filter: brightness(1.25); }
-    .team.red   { background: #b71c1c; }
-    .team.white { background: #616161; }
-    .team-label { font-size: 4vw; font-weight: bold; letter-spacing: 2px; }
-    .score { font-size: 20vw; font-weight: 900; line-height: 1; }
+    .team:active { filter: brightness(1.12); }
+    .team.red   { background: var(--red);  color: var(--line); }
+    .team.white { background: var(--line); color: var(--walnut); }
+    .team-label { font-size: min(4.5vw, 19px); }
+    .team-hint  { font-size: min(3vw, 13px); opacity: 0.7; }
+    .score { font-size: min(24vw, 32vh); line-height: 1; font-variant-numeric: tabular-nums; }
     .btn-row { display: flex; gap: 10px; }
-    .score-btn {
-      width: 17vw;
-      height: max(72px, 11vw);
-      font-size: 7.5vw;
-      font-weight: bold;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform 0.1s, filter 0.1s;
+    /* 手機橫放等矮螢幕：縮小比分、拿掉提示，避免被上下列遮住 */
+    @media (max-height: 500px) {
+      .team { gap: 6px; }
+      .team-hint { display: none; }
+      .score { font-size: min(24vw, 22vh); }
     }
-    .score-btn:active { transform: scale(0.92); filter: brightness(0.85); }
-    .btn-plus  { background: #fff; color: #1a1a1a; }
-    .btn-minus { background: rgba(0,0,0,0.3); color: #fff; }
+    .score-btn { width: min(20vw, 120px); height: 64px; font-size: min(6.5vw, 28px); }
+    .team.red .score-btn { background: #7E1A11; }
 
     #end-bar {
       flex-shrink: 0;
-      padding: 8px 14px 12px;
-      background: #111;
+      padding: 10px 14px 14px;
+      background: var(--walnut);
+      display: flex;
     }
-    #btn-end {
-      width: 100%;
-      padding: 13px;
-      font-size: 4.5vw;
-      font-weight: bold;
-      background: transparent;
-      color: #ef9a9a;
-      border: 1px solid #555;
-      border-radius: 12px;
-      cursor: pointer;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.1s;
-    }
-    #btn-end:active { background: #2a1a1a; }
+    #btn-end { flex: 1; font-size: min(4.8vw, 21px); padding: 12px; box-shadow: none; margin: 0; }
+    #btn-end:active { top: 2px; }
 
     /* ── Confirm overlay ── */
     .overlay {
       display: none;
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.82);
+      background: rgba(59, 35, 20, 0.75);
       align-items: center; justify-content: center;
       z-index: 100;
     }
     .overlay.show { display: flex; }
     .dialog {
-      background: #1e1e1e;
-      border: 1px solid #555;
-      border-radius: 14px;
-      padding: 28px 22px;
-      max-width: 300px;
+      padding: 26px 20px 18px;
+      max-width: 320px;
       width: 88%;
       text-align: center;
     }
-    .dialog-score {
-      font-size: 11vw;
-      font-weight: 900;
-      margin-bottom: 6px;
-    }
-    .dialog-score .r { color: #f44336; }
-    .dialog-score .w { color: #fff; }
-    .dialog-players { font-size: 3.5vw; color: #888; margin-bottom: 20px; }
-    .dialog p { margin-bottom: 20px; font-size: 16px; line-height: 1.5; }
+    .dialog-score { font-size: min(12vw, 52px); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+    .dialog-score .w { color: var(--walnut); }
+    .dialog-score .sep { color: var(--maple-deep); margin: 0 0.25em; }
+    .dialog-players { font-size: min(3.8vw, 16px); color: var(--varnish); margin-bottom: 18px; }
+    .dialog p { margin-bottom: 18px; font-size: 16px; line-height: 1.6; }
     .dialog-btns { display: flex; gap: 12px; }
-    .dialog-btn {
-      flex: 1;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: bold;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-    .btn-cancel  { background: #333; color: #ccc; }
-    .btn-confirm { background: #c62828; color: #fff; }
+    .dialog-btn { flex: 1; font-size: 16px; padding: 12px; }
   </style>
 </head>
 <body>
@@ -210,10 +176,11 @@
     <div id="header-left">場地 <span id="court-num">-</span></div>
     <div id="header-right" id="header-matchup"></div>
   </div>
-  <div id="status" class="disconnected">連線中...</div>
+  <div id="status" class="conn">連線中...</div>
 
   <!-- Lobby -->
   <div id="lobby">
+   <div id="lobby-card" class="px-frame">
     <div id="lobby-heading">下一場對戰</div>
     <div id="lobby-progress"></div>
     <div class="field-group">
@@ -224,7 +191,8 @@
       <div class="field-label"><span class="dot-white"></span>白隊選手</div>
       <input class="player-input" id="input-white" type="text" placeholder="例：B1" autocomplete="off">
     </div>
-    <button id="btn-start" onclick="startMatch()">開始比賽</button>
+    <button id="btn-start" class="px-btn go" onclick="startMatch()">開始比賽</button>
+   </div>
   </div>
 
   <!-- Match -->
@@ -233,36 +201,39 @@
       <div class="team red" onclick="send('red', 1)">
         <div class="team-label">紅隊</div>
         <div class="score" id="red-score">0</div>
+        <div class="team-hint">點這半邊 +1</div>
         <div class="btn-row">
-          <button class="score-btn btn-minus" onclick="event.stopPropagation(); send('red', -1)">-1</button>
+          <button class="score-btn px-btn" onclick="event.stopPropagation(); send('red', -1)">-1</button>
         </div>
       </div>
+      <div id="net"></div>
       <div class="team white" onclick="send('white', 1)">
         <div class="team-label">白隊</div>
         <div class="score" id="white-score">0</div>
+        <div class="team-hint">點這半邊 +1</div>
         <div class="btn-row">
-          <button class="score-btn btn-minus" onclick="event.stopPropagation(); send('white', -1)">-1</button>
+          <button class="score-btn px-btn" onclick="event.stopPropagation(); send('white', -1)">-1</button>
         </div>
       </div>
     </div>
     <div id="end-bar">
-      <button id="btn-end" onclick="showEndConfirm()">結束本場</button>
+      <button id="btn-end" class="px-btn paper" onclick="showEndConfirm()">結束本場</button>
     </div>
   </div>
 
   <!-- End confirm dialog -->
   <div class="overlay" id="end-overlay">
-    <div class="dialog">
+    <div class="dialog px-frame">
       <div class="dialog-score">
         <span class="r" id="dlg-red">0</span>
-        <span style="color:#444;font-size:8vw;margin:0 6px">:</span>
+        <span class="sep">:</span>
         <span class="w" id="dlg-white">0</span>
       </div>
       <div class="dialog-players" id="dlg-players"></div>
       <p>確定結束本場比賽？</p>
       <div class="dialog-btns">
-        <button class="dialog-btn btn-cancel"  onclick="closeConfirm()">取消</button>
-        <button class="dialog-btn btn-confirm" onclick="endMatch()">結束</button>
+        <button class="dialog-btn px-btn paper" onclick="closeConfirm()">取消</button>
+        <button class="dialog-btn px-btn red" onclick="endMatch()">結束本場</button>
       </div>
     </div>
   </div>
@@ -281,7 +252,7 @@
       ws = new WebSocket(`${proto}://${location.host}/ws`);
       ws.onopen = () => {
         document.getElementById('status').textContent = '已連線';
-        document.getElementById('status').className = 'connected';
+        document.getElementById('status').className = 'conn connected';
       };
       ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
@@ -289,7 +260,7 @@
       };
       ws.onclose = () => {
         document.getElementById('status').textContent = '連線中...';
-        document.getElementById('status').className = 'disconnected';
+        document.getElementById('status').className = 'conn';
         setTimeout(connect, 2000);
       };
       ws.onerror = () => ws.close();
@@ -344,7 +315,7 @@
 
       const hr = document.getElementById('header-right');
       if (court.red_player || court.white_player) {
-        hr.innerHTML = `<span class="r">${court.red_player || '紅隊'}</span> vs <span class="w">${court.white_player || '白隊'}</span>`;
+        hr.innerHTML = `<span class="r">${court.red_player || '紅隊'}</span> 對 <span class="w">${court.white_player || '白隊'}</span>`;
       } else {
         hr.textContent = '';
       }
@@ -354,7 +325,7 @@
       const done  = court.match_index  || 0;
       if (total > 0) {
         document.getElementById('header-left').innerHTML =
-          `場地 ${courtId} <span style="font-size:2.8vw;color:#888;font-weight:normal">第${done + 1}/${total}場</span>`;
+          `場地 ${courtId}<span class="hdr-sub">第${done + 1}/${total}場</span>`;
       }
     }
 
@@ -380,7 +351,7 @@
       document.getElementById('dlg-white').textContent = currentCourt.white;
       const rp = currentCourt.red_player   || '紅隊';
       const wp = currentCourt.white_player || '白隊';
-      document.getElementById('dlg-players').textContent = `${rp} vs ${wp}`;
+      document.getElementById('dlg-players').textContent = `${rp} 對 ${wp}`;
       document.getElementById('end-overlay').classList.add('show');
     }
 

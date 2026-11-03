@@ -4,181 +4,139 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理頁面</title>
+  <link rel="stylesheet" href="/static/pixel.css">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Arial', sans-serif;
-      background: #121212;
-      color: #e0e0e0;
       min-height: 100dvh;
       padding: 20px 16px 60px;
     }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    #conn-status { font-size: 12px; margin-bottom: 20px; }
-    #conn-status.connected { color: #4caf50; }
-    #conn-status.disconnected { color: #f44336; }
+    main { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    #conn-status { margin-bottom: 24px; }
 
-    .section { margin-bottom: 28px; }
-    .section-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #666;
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #2a2a2a;
-    }
+    .section { padding: 16px; margin-bottom: 28px; }
+    .section-title { font-size: 18px; margin-bottom: 12px; }
 
-    .btn {
-      border: none; border-radius: 8px;
-      padding: 10px 16px; font-size: 14px; font-weight: bold;
-      cursor: pointer; touch-action: manipulation;
-      transition: filter 0.1s;
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn:active { filter: brightness(0.8); }
-    .btn:disabled { opacity: 0.35; cursor: not-allowed; filter: none; }
-    .btn-primary { background: #1565c0; color: #fff; }
-    .btn-success { background: #2e7d32; color: #fff; }
-    .btn-warning { background: #e65100; color: #fff; }
-    .btn-danger  { background: #c62828; color: #fff; }
-    .btn-ghost   { background: #2a2a2a; color: #ccc; }
-    .btn-sm   { padding: 6px 12px; font-size: 13px; }
-    .btn-block { width: 100%; justify-content: center; padding: 12px; }
+    .btn-sm    { font-size: 14px; padding: 6px 10px; }
+    .btn-block { display: flex; width: calc(100% - var(--px) * 2); padding: 12px; }
 
     /* ── Schedule section ── */
-    .upload-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-    .file-label {
-      background: #1565c0; color: #fff; border-radius: 8px;
-      padding: 10px 16px; font-size: 14px; font-weight: bold; cursor: pointer;
-    }
+    .upload-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .file-label input[type="file"] { display: none; }
-    #schedule-info { font-size: 13px; color: #888; margin-bottom: 10px; min-height: 18px; }
+    #schedule-info { font-size: 14px; color: var(--varnish); margin-bottom: 10px; min-height: 18px; }
     #csv-preview { display: none; margin-bottom: 12px; }
-    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; display: block; overflow-x: auto; }
-    .preview-table th, .preview-table td { border: 1px solid #333; padding: 5px 8px; white-space: nowrap; }
-    .preview-table th { background: #1e1e1e; color: #888; }
-    .preview-table td { background: #161616; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
+    .preview-table th, .preview-table td { border: 2px solid var(--maple-deep); padding: 5px 8px; white-space: nowrap; }
+    .preview-table th { background: var(--maple); }
+    .preview-table td { background: var(--line); }
 
     /* ── Totals ── */
-    .totals-row { display: flex; gap: 12px; }
-    .total-card { flex: 1; border-radius: 10px; padding: 12px; text-align: center; }
-    .total-card.red   { background: #b71c1c; }
-    .total-card.white { background: #424242; }
-    .total-card .tlabel { font-size: 11px; letter-spacing: 2px; }
-    .total-card .tscore { font-size: 40px; font-weight: 900; line-height: 1.1; }
+    .totals-row { display: flex; gap: 16px; }
+    .total-card { flex: 1; padding: 12px; text-align: center; }
+    .total-card.red   { background: var(--red); color: var(--line); }
+    .total-card.white { background: var(--line); }
+    .total-card .tlabel { font-size: 14px; }
+    .total-card .tscore { font-size: 44px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 
     /* ── Court status rows ── */
-    #court-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-    .court-row {
-      background: #1e1e1e; border: 1px solid #2a2a2a;
-      border-radius: 10px; padding: 12px 14px;
-    }
-    .court-row.active-row { border-color: #4caf50; }
+    #court-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+    .court-row { background: var(--line); padding: 12px 14px; box-shadow: inset 0 0 0 2px var(--maple-deep); }
+    .court-row.active-row { box-shadow: inset 0 0 0 var(--px) var(--live); }
     .court-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-    .court-name { font-weight: bold; font-size: 15px; }
-    .badge {
-      font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: bold; white-space: nowrap;
-    }
-    .badge-active   { background: #1b5e20; color: #a5d6a7; border: 1px solid #4caf50; }
-    .badge-waiting  { background: #1e1e1e; color: #666;    border: 1px solid #333; }
-    .badge-done     { background: #1a1a1a; color: #555;    border: 1px solid #2a2a2a; }
-    .court-progress { font-size: 12px; color: #666; }
-    .court-players  { font-size: 14px; margin-bottom: 8px; min-height: 20px; }
-    .court-players .r { color: #f44336; font-weight: bold; }
-    .court-players .w { color: #ccc;    font-weight: bold; }
-    .court-score    { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-    .court-score .r { color: #f44336; }
-    .court-score .w { color: #fff; }
+    .court-name { font-size: 16px; }
+    .court-progress { font-size: 13px; color: var(--varnish); }
+    .court-players  { font-size: 15px; margin-bottom: 8px; min-height: 20px; color: var(--varnish); }
+    .court-score    { font-size: 22px; margin-bottom: 8px; }
+    .court-score .w { color: var(--walnut); }
+    .sep { color: var(--maple-deep); }
     .court-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .court-btns .px-btn.paper.r { color: var(--red); }
 
     /* ── History ── */
-    #history-list { display: flex; flex-direction: column; gap: 8px; }
-    .history-entry {
-      background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 8px; padding: 10px 14px;
-    }
+    #history-list { display: flex; flex-direction: column; }
+    .history-entry { padding: 10px 2px; border-bottom: 2px solid var(--maple-deep); }
+    .history-entry:last-child { border-bottom: none; }
     .he-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .he-title  { font-weight: bold; font-size: 14px; }
-    .he-meta   { font-size: 12px; color: #666; }
-    .he-score  { font-size: 14px; font-weight: bold; }
-    .he-score .r { color: #f44336; }
-    .he-score .w { color: #fff; }
+    .he-title  { font-size: 15px; }
+    .he-meta   { font-size: 13px; color: var(--varnish); margin-left: 8px; }
+    .he-score  { font-size: 16px; }
+    .he-score .w { color: var(--walnut); }
+    .he-players { font-size: 13px; color: var(--varnish); }
+    .empty-note { font-size: 14px; color: var(--varnish); }
 
     /* ── Confirm overlay ── */
     .confirm-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.75);
+      background: rgba(59, 35, 20, 0.75);
       align-items: center; justify-content: center; z-index: 100;
     }
     .confirm-overlay.show { display: flex; }
-    .confirm-box {
-      background: #1e1e1e; border: 1px solid #444; border-radius: 14px;
-      padding: 28px 24px; max-width: 320px; width: 90%; text-align: center;
-    }
-    .confirm-box p { margin-bottom: 20px; font-size: 16px; line-height: 1.5; }
+    .confirm-box { padding: 26px 22px 18px; max-width: 340px; width: 90%; text-align: center; }
+    .confirm-box p { margin-bottom: 20px; font-size: 16px; line-height: 1.6; }
     .confirm-actions { display: flex; gap: 12px; }
-    .confirm-actions .btn { flex: 1; padding: 12px; }
+    .confirm-actions .px-btn { flex: 1; padding: 12px; }
   </style>
 </head>
 <body>
+ <main>
   <h1>管理頁面</h1>
-  <div id="conn-status" class="disconnected">連線中...</div>
+  <div id="conn-status" class="conn">連線中...</div>
 
   <!-- 1. 賽程設定 -->
-  <div class="section">
-    <div class="section-title">賽程設定</div>
+  <div class="section px-frame">
+    <h2 class="section-title">賽程設定</h2>
     <div class="upload-row">
-      <a class="btn btn-ghost" href="/static/template.csv" download="schedule_template.csv">⬇ 下載範本 CSV</a>
-      <label class="file-label">📂 上傳賽程 CSV<input type="file" accept=".csv,.txt" onchange="handleCSVFile(this)"></label>
+      <a class="px-btn paper" href="/static/template.csv" download="schedule_template.csv">下載範本 CSV</a>
+      <label class="px-btn file-label">選擇賽程 CSV<input type="file" accept=".csv,.txt" onchange="handleCSVFile(this)"></label>
     </div>
     <div id="schedule-info">尚未載入賽程</div>
     <div id="csv-preview">
       <div style="overflow-x:auto;margin-bottom:10px">
         <table class="preview-table" id="preview-table"></table>
       </div>
-      <button class="btn btn-success btn-block" onclick="submitSchedule()">確認上傳賽程</button>
+      <button class="px-btn go btn-block" onclick="submitSchedule()">上傳賽程（會清空歷史與累積分）</button>
     </div>
   </div>
 
   <!-- 2. 目前總分 -->
-  <div class="section">
-    <div class="section-title">目前總分（累積）</div>
+  <div class="section px-frame">
+    <h2 class="section-title">目前總分（累積）</h2>
     <div class="totals-row">
-      <div class="total-card red">
-        <div class="tlabel">RED</div>
+      <div class="total-card red px-frame">
+        <div class="tlabel">紅隊</div>
         <div class="tscore" id="total-red">0</div>
       </div>
-      <div class="total-card white">
-        <div class="tlabel">WHITE</div>
+      <div class="total-card white px-frame">
+        <div class="tlabel">白隊</div>
         <div class="tscore" id="total-white">0</div>
       </div>
     </div>
   </div>
 
   <!-- 3. 場地狀態 -->
-  <div class="section">
-    <div class="section-title">場地狀態</div>
+  <div class="section px-frame">
+    <h2 class="section-title">場地狀態</h2>
     <div id="court-list"></div>
-    <button class="btn btn-ghost btn-block" onclick="addCourt()">＋ 新增場地</button>
+    <button class="px-btn paper btn-block" onclick="addCourt()">新增場地</button>
   </div>
 
   <!-- 4. 歷史紀錄 -->
-  <div class="section">
-    <div class="section-title">歷史紀錄</div>
-    <div id="history-list"><div style="color:#555;font-size:13px">尚無紀錄</div></div>
+  <div class="section px-frame">
+    <h2 class="section-title">歷史紀錄</h2>
+    <div id="history-list"><div class="empty-note">尚無紀錄，場地結束一場後會出現在這裡</div></div>
   </div>
 
   <!-- Confirm dialog -->
   <div class="confirm-overlay" id="confirm-overlay">
-    <div class="confirm-box">
+    <div class="confirm-box px-frame">
       <p id="confirm-msg"></p>
       <div class="confirm-actions">
-        <button class="btn btn-ghost" onclick="closeConfirm()">取消</button>
-        <button class="btn btn-danger" id="confirm-ok-btn">確定</button>
+        <button class="px-btn paper" onclick="closeConfirm()">取消</button>
+        <button class="px-btn red" id="confirm-ok-btn">確定</button>
       </div>
     </div>
   </div>
+ </main>
 
   <script>
     let ws = null;
@@ -191,7 +149,7 @@
       ws = new WebSocket(`${proto}://${location.host}/ws`);
       ws.onopen = () => {
         document.getElementById('conn-status').textContent = '已連線';
-        document.getElementById('conn-status').className = 'connected';
+        document.getElementById('conn-status').className = 'conn connected';
       };
       ws.onmessage = (e) => {
         const d = JSON.parse(e.data);
@@ -199,7 +157,7 @@
       };
       ws.onclose = () => {
         document.getElementById('conn-status').textContent = '連線中...';
-        document.getElementById('conn-status').className = 'disconnected';
+        document.getElementById('conn-status').className = 'conn';
         setTimeout(connect, 2000);
       };
       ws.onerror = () => ws.close();
@@ -232,16 +190,16 @@
 
         let badge, playersHtml;
         if (active) {
-          badge = '<span class="badge badge-active">進行中</span>';
-          playersHtml = `<span class="r">${c.red_player || '紅隊'}</span> vs <span class="w">${c.white_player || '白隊'}</span>`;
+          badge = '<span class="tag live">進行中</span>';
+          playersHtml = `<span class="r">${c.red_player || '紅隊'}</span> 對 <span class="w">${c.white_player || '白隊'}</span>`;
         } else if (allDone) {
-          badge = '<span class="badge badge-done">已完成</span>';
+          badge = '<span class="tag muted">已完成</span>';
           playersHtml = total > 0 ? `全 ${total} 場完畢` : '';
         } else {
-          badge = '<span class="badge badge-waiting">待開始</span>';
+          badge = '<span class="tag">待開始</span>';
           const rp = c.red_player, wp = c.white_player;
           playersHtml = (rp || wp)
-            ? `下一場：<span class="r">${rp || '?'}</span> vs <span class="w">${wp || '?'}</span>`
+            ? `下一場：<span class="r">${rp || '?'}</span> 對 <span class="w">${wp || '?'}</span>`
             : '尚無對戰資訊';
         }
 
@@ -250,11 +208,11 @@
           : '';
 
         const scoreHtml = active
-          ? `<div class="court-score"><span class="r">${c.red}</span> <span style="color:#444">:</span> <span class="w">${c.white}</span></div>`
+          ? `<div class="court-score"><span class="r">${c.red}</span> <span class="sep">:</span> <span class="w">${c.white}</span></div>`
           : '';
 
         const forceEndBtn = active
-          ? `<button class="btn btn-warning btn-sm" onclick="confirmAction('強制結束場地 ${id} 的比賽？', () => forceEnd(${id}))">強制結束</button>`
+          ? `<button class="px-btn amber btn-sm" onclick="confirmAction('強制結束場地 ${id} 的比賽？', () => forceEnd(${id}))">強制結束</button>`
           : '';
 
         return `
@@ -268,9 +226,9 @@
             ${scoreHtml}
             <div class="court-btns">
               ${forceEndBtn}
-              <a class="btn btn-primary btn-sm" href="/court?id=${id}" target="_blank">開啟場地</a>
-              <button class="btn btn-ghost btn-sm" onclick="confirmAction('重置場地 ${id} 分數？', () => resetCourt(${id}))">重置分數</button>
-              <button class="btn btn-ghost btn-sm" style="color:#f44336" onclick="confirmAction('移除場地 ${id}？', () => removeCourt(${id}))">移除</button>
+              <a class="px-btn btn-sm" href="/court?id=${id}" target="_blank">開啟計分頁</a>
+              <button class="px-btn paper btn-sm" onclick="confirmAction('重置場地 ${id} 分數？', () => resetCourt(${id}))">重置分數</button>
+              <button class="px-btn paper btn-sm r" onclick="confirmAction('移除場地 ${id}？', () => removeCourt(${id}))">移除</button>
             </div>
           </div>`;
       }).join('');
@@ -280,7 +238,7 @@
     function renderHistory(history) {
       const el = document.getElementById('history-list');
       if (!history || history.length === 0) {
-        el.innerHTML = '<div style="color:#555;font-size:13px">尚無紀錄</div>';
+        el.innerHTML = '<div class="empty-note">尚無紀錄，場地結束一場後會出現在這裡</div>';
         return;
       }
       el.innerHTML = [...history].reverse().map(h => `
@@ -288,13 +246,13 @@
           <div class="he-header">
             <div>
               <span class="he-title">場地 ${h.court}</span>
-              <span class="he-meta" style="margin-left:8px">第 ${h.round} 局${h.time ? ' · ' + h.time : ''}</span>
+              <span class="he-meta">第 ${h.round} 局${h.time ? ' · ' + h.time : ''}</span>
             </div>
             <div class="he-score"><span class="r">${h.red}</span> : <span class="w">${h.white}</span></div>
           </div>
-          <div style="font-size:13px;color:#888">
-            <span style="color:#f44336">${h.red_player || '紅隊'}</span> vs
-            <span style="color:#ccc">${h.white_player || '白隊'}</span>
+          <div class="he-players">
+            <span class="r">${h.red_player || '紅隊'}</span> 對
+            <span class="w">${h.white_player || '白隊'}</span>
           </div>
         </div>`).join('');
     }

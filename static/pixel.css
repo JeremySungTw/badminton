@@ -1,0 +1,123 @@
+/* 共用像素風樣式：打蠟楓木地板色系 + 俐方體 11 號像素字 */
+
+@font-face {
+  font-family: 'Cubic 11';
+  src: url('/static/fonts/Cubic_11.woff2') format('woff2');
+  font-display: swap;
+}
+
+:root {
+  --px: 4px;                 /* 一個「像素格」的大小 */
+  --maple: #E7BE85;          /* 打蠟楓木地板 */
+  --maple-deep: #D3A066;     /* 地板接縫、木紋 */
+  --paper: #FBEBD0;          /* 面板底色（淺木漿） */
+  --walnut: #3B2314;         /* 胡桃木深色：文字、外框 */
+  --varnish: #8A5530;        /* 次要文字 */
+  --line: #FFF7E8;           /* 場地邊線白 = 白隊 */
+  --red: #B8291C;            /* 紅隊 */
+  --live: #2F7D4A;           /* 進行中 / 開始 */
+  --amber: #C9771E;          /* 警示 */
+  --font: 'Cubic 11', 'PingFang TC', 'Noto Sans TC', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  color: var(--walnut);
+  background-color: var(--maple);
+  /* 錯縫長條地板：三排木板、細接縫、淡木紋，全部對齊像素格 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='96' shape-rendering='crispEdges'%3E%3Crect width='640' height='32' fill='%23E7BE85'/%3E%3Crect y='32' width='640' height='32' fill='%23E4BA80'/%3E%3Crect y='64' width='640' height='32' fill='%23E9C189'/%3E%3Cg fill='%23D9A86E'%3E%3Crect y='30' width='640' height='2'/%3E%3Crect y='62' width='640' height='2'/%3E%3Crect y='94' width='640' height='2'/%3E%3Crect x='420' width='2' height='30'/%3E%3Crect x='140' y='32' width='2' height='30'/%3E%3Crect x='560' y='64' width='2' height='30'/%3E%3C/g%3E%3Cg fill='%23E0B37A'%3E%3Crect x='60' y='12' width='48' height='2'/%3E%3Crect x='250' y='18' width='72' height='2'/%3E%3Crect x='500' y='10' width='40' height='2'/%3E%3Crect x='300' y='44' width='64' height='2'/%3E%3Crect x='520' y='50' width='36' height='2'/%3E%3Crect x='20' y='80' width='56' height='2'/%3E%3Crect x='330' y='76' width='44' height='2'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 640px 96px;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* 缺角像素外框：四邊各推一格，角落自然留空 */
+.px-frame {
+  background: var(--paper);
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--walnut),
+    0 var(--px) 0 0 var(--walnut),
+    calc(var(--px) * -1) 0 0 0 var(--walnut),
+    var(--px) 0 0 0 var(--walnut);
+  margin: var(--px);
+}
+
+/* ── 按鈕：底部厚一格，按下時陷入 ── */
+.px-btn {
+  font-family: var(--font);
+  font-size: 16px;
+  color: var(--line);
+  background: var(--walnut);
+  border: none;
+  padding: 10px 16px;
+  margin: var(--px) var(--px) calc(var(--px) * 2);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  top: 0;
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--walnut),
+    0 calc(var(--px) * 2) 0 0 var(--walnut),
+    calc(var(--px) * -1) 0 0 0 var(--walnut),
+    var(--px) 0 0 0 var(--walnut),
+    inset 0 calc(var(--px) * -1) 0 0 rgba(0, 0, 0, 0.25);
+}
+.px-btn:active {
+  top: var(--px);
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--walnut),
+    0 var(--px) 0 0 var(--walnut),
+    calc(var(--px) * -1) 0 0 0 var(--walnut),
+    var(--px) 0 0 0 var(--walnut);
+}
+.px-btn:focus-visible { outline: var(--px) dashed var(--walnut); outline-offset: calc(var(--px) * 2); }
+.px-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.px-btn.go     { background: var(--live); }
+.px-btn.red    { background: var(--red); }
+.px-btn.amber  { background: var(--amber); }
+.px-btn.paper  { background: var(--paper); color: var(--walnut); }
+
+/* 連線狀態：一格方塊燈 */
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--varnish);
+}
+.conn::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--red);
+}
+.conn.connected::before { background: var(--live); }
+
+/* 隊伍文字色 */
+.r { color: var(--red); }
+.w { color: var(--walnut); }
+
+/* 狀態標籤 */
+.tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 6px;
+  background: var(--walnut);
+  color: var(--line);
+  white-space: nowrap;
+}
+.tag[hidden] { display: none; }
+.tag.live { background: var(--live); }
+.tag.muted { background: transparent; color: var(--varnish); box-shadow: inset 0 0 0 2px var(--maple-deep); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
