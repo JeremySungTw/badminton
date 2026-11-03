@@ -303,6 +303,20 @@
       '....kcck..kcck..',
       '...kkkkk.kkkkk..',
     ];
+    // 跨步：前腳往前、後腳往後，只換掉腿的那幾列
+    const CAT_STEP = [
+      ...CAT.slice(0, 17),
+      '....kook.kook...',
+      '...kook...kook..',
+      '..kkkk.....kkkk.',
+    ];
+    const DOG_STEP = [
+      ...DOG.slice(0, 16),
+      '....kcck..kcck..',
+      '...kcck....kcck.',
+      '..kcck......kcck',
+      '.kkkkk.....kkkkk',
+    ];
     const SHUTTLE = ['ccc..', 'cccrr', 'ccc..'];   // 羽毛在後、球頭朝右
 
     const W = 160, H = 60;
@@ -348,9 +362,26 @@
       return { sx, sy, dx, dy, hx: sx + dx * 9, hy: sy + dy * 9 };
     }
 
-    function drawPlayer(rows, baseX, flip, u) {
-      const hop = Math.abs(u) < 0.12 ? -1 : 0;
-      const baseY = FLOOR - rows.length + 1 + hop;
+    // 步法（u = 距離自己擊球的秒數）：擊球後退回底線、等對方擊球時墊步、再上前迎球。
+    // 擊球前後位移為 0，擊球點維持不變
+    const BACK = 4;
+    function footwork(u) {
+      const ease = (s) => s * s * (3 - 2 * s);
+      let back = 0, moving = false;
+      if (u >= 0 && u < 0.4)          { back = BACK * ease(u / 0.4); moving = true; }
+      else if (u >= 0.4 || u < -0.7)  back = BACK;
+      else if (u < -0.15)             { back = BACK * ease((-0.15 - u) / 0.55); moving = true; }
+      const lunge = Math.abs(u) < 0.12;
+      const stride = lunge || (moving && Math.floor(u / 0.1) % 2 === 0);
+      const hop = lunge || u > 0.95 || u < -1.02 ? -1 : 0;   // 擊球跳起、對方擊球時墊步
+      return { back: Math.round(back), stride, hop };
+    }
+
+    function drawPlayer(rows, step, baseX, flip, u) {
+      const f = footwork(u);
+      baseX += flip ? f.back : -f.back;
+      if (f.stride) rows = step;
+      const baseY = FLOOR - rows.length + 1 + f.hop;
       ctx.fillStyle = 'rgba(59, 35, 20, 0.22)';
       px(baseX + 2, FLOOR + 1, 12, 1);
       sprite(rows, baseX, baseY, flip);
@@ -458,8 +489,8 @@
       const catBaseY = FLOOR - CAT.length + 1, dogBaseY = FLOOR - DOG.length + 1;
       const catHit = racketHead(CAT_X, catBaseY, false, -60);
       const dogHit = racketHead(DOG_X, dogBaseY, true, -60);
-      drawPlayer(CAT, CAT_X, false, hitstop(wrap(t)));
-      drawPlayer(DOG, DOG_X, true, hitstop(wrap(t - FLIGHT)));
+      drawPlayer(CAT, CAT_STEP, CAT_X, false, hitstop(wrap(t)));
+      drawPlayer(DOG, DOG_STEP, DOG_X, true, hitstop(wrap(t - FLIGHT)));
       drawShuttle(t, catHit, dogHit);
       drawImpact(wrap(t), catHit, 1);
       drawImpact(wrap(t - FLIGHT), dogHit, -1);
